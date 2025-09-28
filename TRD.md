@@ -145,9 +145,32 @@
 
 ---
 
-## 9. Future Extensions  
-- Multiple payment providers (PayNow, GrabPay, PayPal).  
-- Chat integrations (WhatsApp, Telegram).  
-- Savings goal “piggy bank” Spaces.  
-- Business cost centre mapping.  
+## 9. Rate Limiting & Security
+- **API Rate Limits:** 100 req/min per user, 10 req/min for payment endpoints
+- **Payment Security:** Stripe Elements (PCI compliant), webhook signature verification
+- **Data Protection:** AES-256 encryption at rest, TLS 1.3 in transit
+- **API Versioning:** `/api/v1/` prefix, 6-month deprecation cycle
+
+## 10. Database Strategy
+- **Migrations:** Alembic for schema changes, zero-downtime deployments
+- **Backups:** Daily automated backups, 30-day retention, cross-region replication
+- **Performance:** Connection pooling (SQLAlchemy), read replicas for reporting
+
+## 11. Disaster Recovery
+- **RTO Target:** 4 hours for full service restoration
+- **RPO Target:** 1 hour maximum data loss
+- **Strategy:** Multi-AZ RDS, ECS auto-scaling, S3 cross-region replication
+- **Runbooks:** Documented procedures for common failure scenarios
+
+## 12. Customer Support Integration
+- **Admin Tools:** Manual payout override, user account suspension
+- **Audit Trails:** All admin actions logged with user ID + timestamp
+- **Refund Process:** Direct Stripe refund with automatic ledger credit entry
+- **Dispute Resolution:** Immutable ledger exports for evidence
+
+## 13. Future Extensions
+- Multiple payment providers (PayNow, GrabPay, PayPal).
+- Chat integrations (WhatsApp, Telegram).
+- Savings goal "piggy bank" Spaces.
+- Business cost centre mapping.
 - Multi-level approval flows.  

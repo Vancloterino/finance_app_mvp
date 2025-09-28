@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)  
 **Product:** Shared Finance App  
 **Version:** 0.1 (MVP)  
-**Owner:** TBD  
-**Last Updated:** YYYY-MM-DD  
+**Owner:** Finance App Team
+**Last Updated:** 2025-01-28  
 
 ---
 
@@ -36,8 +36,10 @@ The MVP focuses on **household rent/bills**, where one admin collects money prop
 2. As a **member**, I want to track how much I’ve pledged and how much I’ve been charged.  
 3. As an **admin**, I want to initiate a payout once enough pledges are made.  
 4. As a **member**, I want to approve or deny a payout so I can control my money.  
-5. As a **member**, I want to see who has pledged and how much.  
-6. As a **group**, we want transparent records to prevent disputes.  
+5. As a **member**, I want to see who has pledged and how much.
+6. As a **group**, we want transparent records to prevent disputes.
+7. As a **new user**, I want to be invited to a Space and complete setup easily.
+8. As a **member**, I want clear guidance when my payment fails or is disputed.  
 
 ### Future Extensions
 - As a **user**, I want to connect my WhatsApp group to create a Space directly.  
@@ -71,9 +73,11 @@ The MVP focuses on **household rent/bills**, where one admin collects money prop
   - >90% of payouts executed on time.  
   - <5% Stripe payment failures without recovery.  
 
-- **User Experience**  
-  - >70% of users understand “pledge vs settlement” without confusion (measured by onboarding survey).  
-  - >50% monthly active use among early adopters (retention).  
+- **User Experience**
+  - >70% of users understand "pledge vs settlement" without confusion (measured by onboarding survey).
+  - >50% monthly active use among early adopters (retention).
+  - <2 minutes average onboarding time for invited users.
+  - MVP launch target: Q2 2025  
 
 - **Growth / Future-readiness**  
   - % of groups reusing app for multiple Spaces (stickiness).  
@@ -93,7 +97,9 @@ The MVP focuses on **household rent/bills**, where one admin collects money prop
 - Stripe availability in user’s region.  
 - Pledges are **not actual deposits** (must be clearly communicated).  
 - Minimum viable UI must prioritize clarity of balances and consent states.  
-- Web-first, mobile web responsive; native mobile in future phase.  
+- Web-first, mobile web responsive; native mobile in future phase.
+- GDPR compliance required for EU users.
+- All user data encrypted at rest and in transit.  
 
 ---
 

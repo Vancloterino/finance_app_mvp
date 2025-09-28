@@ -76,6 +76,11 @@ The ledger is the **source of truth** for all monetary commitments and settlemen
 ## 6. Balances & Invariants
 
 ### Member Balance (per Space)
+```
+balance(user, space) = Σ(amount_minor WHERE space_id=space AND user_id=user)
+```
+- Positive balance = member owes money to Space
+- Negative balance = Space owes money to member (overpayment/refund due)
 
 ### Space Conservation
 
@@ -156,12 +161,23 @@ At any point in time, a Space must remain internally consistent:
 ## 14. Worked Examples
 
 ### Rent (SGD 2,000, 4 members, 40/30/20/10%)
-- Debits: 800 / 600 / 400 / 200 → exact, no rounding.  
-- Balances: pledges offset by debits → net 0.  
+```
+Pledges: +800, +600, +400, +200 (total: +2000)
+Debits:  -800, -600, -400, -200 (total: -2000)
+Balances: 0, 0, 0, 0 (all settled)
+```
+
+### Rounding Example (SGD 100, 3 members, 33.33% each)
+```
+Raw shares: 33.33, 33.33, 33.34
+Floor: 33, 33, 33 = 99 cents
+Remainder: 0.33, 0.33, 0.34 → distribute 1 cent to highest (member 3)
+Final debits: 33, 33, 34 cents (total: 100)
+```
 
 ### Shortfall (member fails)
-- Missing debit recorded as failure.  
-- Space pays less unless admin covers shortfall.  
+- Missing debit recorded as failure.
+- Space pays less unless admin covers shortfall.
 
 ### Refund
 - Stripe refund → `credit` entry with link to original payment.  
@@ -183,7 +199,13 @@ At any point in time, a Space must remain internally consistent:
 ---
 
 ## 17. Audit & Export
-- Exports: CSV + JSONL with stable schema.  
-- Retention: indefinite; archive to S3 after N days.  
+- Exports: CSV + JSONL with stable schema.
+- Retention: indefinite; archive to S3 after N days.
+
+## 18. Failure Recovery
+- **Webhook delivery fails:** Retry with exponential backoff (1m, 5m, 30m, 2h, 12h)
+- **Payment succeeds but webhook lost:** Daily reconciliation job compares Stripe vs ledger
+- **Database corruption:** Point-in-time recovery from RDS backups + replay from Stripe
+- **Idempotency key collision:** Return existing entry, log warning for investigation  
 
 ---
