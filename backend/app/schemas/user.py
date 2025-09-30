@@ -11,7 +11,8 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    auth_id: str
+    auth_id: Optional[str] = None  # For external auth
+    password: Optional[str] = None  # For email/password auth
 
 
 class UserUpdate(BaseModel):

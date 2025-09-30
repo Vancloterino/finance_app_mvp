@@ -12,7 +12,8 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, index=True, nullable=False)
     name = Column(String(255), nullable=False)
-    auth_id = Column(String(255), unique=True, index=True, nullable=False)
+    auth_id = Column(String(255), unique=True, index=True, nullable=True)  # Allow null for email/password users
+    password_hash = Column(String(255), nullable=True)  # For email/password authentication
 
     # Payment info
     stripe_customer_id = Column(String(255), unique=True, nullable=True)

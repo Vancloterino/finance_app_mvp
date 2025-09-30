@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from uuid import UUID
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -44,3 +47,29 @@ def generate_api_key() -> str:
     """Generate a simple API key for development"""
     import secrets
     return secrets.token_urlsafe(32)
+
+
+# Authentication dependency
+security = HTTPBearer()
+
+
+def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UUID:
+    """Extract user ID from JWT token"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = verify_token(credentials.credentials)
+        if payload is None:
+            raise credentials_exception
+
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+
+        return UUID(user_id)
+    except (JWTError, ValueError):
+        raise credentials_exception

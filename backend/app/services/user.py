@@ -4,13 +4,25 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
+from app.core.security import get_password_hash, verify_password
 
 
 class UserService:
     @staticmethod
     def create_user(db: Session, user: UserCreate) -> User:
         """Create a new user"""
-        db_user = User(**user.dict())
+        user_data = user.dict()
+
+        # Hash password if provided
+        if user_data.get('password'):
+            user_data['password_hash'] = get_password_hash(user_data['password'])
+            del user_data['password']  # Remove plain password
+
+        # Generate unique auth_id for email/password users if not provided
+        if not user_data.get('auth_id'):
+            user_data['auth_id'] = f"email:{user_data['email']}"
+
+        db_user = User(**user_data)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
@@ -90,3 +102,15 @@ class UserService:
         db_user.email_verified = True
         db.commit()
         return True
+
+    @staticmethod
+    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+        """Authenticate a user with email and password"""
+        user = UserService.get_user_by_email(db, email)
+        if not user or not user.password_hash:
+            return None
+
+        if not verify_password(password, user.password_hash):
+            return None
+
+        return user

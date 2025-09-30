@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database
-    DATABASE_URL: str = "postgresql://finance_user:finance_pass@localhost:5432/finance_app"
+    DATABASE_URL: str = "postgresql://finance_user:finance_pass@127.0.0.1:5432/finance_app"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
+
+    # Email Configuration
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USE_TLS: bool = True
+    EMAIL_USERNAME: str = ""
+    EMAIL_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@financeapp.com"
+    EMAIL_FROM_NAME: str = "Finance App"
 
     # External Services
     POSTMARK_API_TOKEN: str = ""

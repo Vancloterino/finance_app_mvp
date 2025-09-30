@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.schemas import user as user_schemas
 from app.services.user import UserService
 
@@ -37,13 +38,10 @@ def create_user(
 @router.get("/me", response_model=user_schemas.User)
 def get_current_user(
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get current user profile"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    user = UserService.get_user(db, user_id)
+    user = UserService.get_user(db, current_user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -74,13 +72,10 @@ def get_user(
 def update_current_user(
     user_update: user_schemas.UserUpdate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Update current user profile"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    user = UserService.update_user(db, user_id, user_update)
+    user = UserService.update_user(db, current_user_id, user_update)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -93,13 +88,10 @@ def update_current_user(
 @router.post("/me/verify-email", status_code=status.HTTP_204_NO_CONTENT)
 def verify_user_email(
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Mark current user's email as verified"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    success = UserService.verify_email(db, user_id)
+    success = UserService.verify_email(db, current_user_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -110,13 +102,10 @@ def verify_user_email(
 @router.post("/me/deactivate", status_code=status.HTTP_204_NO_CONTENT)
 def deactivate_current_user(
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Deactivate current user account"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    success = UserService.deactivate_user(db, user_id)
+    success = UserService.deactivate_user(db, current_user_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
