@@ -3,6 +3,7 @@ import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../contexts/ToastContext';
 import { spacesApi } from '../../api/services';
 import { SpaceCreate } from '../../types';
 
@@ -13,6 +14,7 @@ interface CreateSpaceModalProps {
 
 const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ isOpen, onClose }) => {
   const { addSpace } = useApp();
+  const toast = useToast();
   const [formData, setFormData] = useState<SpaceCreate>({
     name: '',
     description: '',
@@ -83,12 +85,16 @@ const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({ isOpen, onClose }) 
         user_allocation: 1.0
       });
 
+      toast.success(`Space "${space.name}" created successfully!`);
+
       // Reset form and close modal
       setFormData({ name: '', description: '', currency: 'USD' });
       setErrors({});
       onClose();
     } catch (error: any) {
-      setErrors({ name: error.message || 'Failed to create space' });
+      const errorMessage = error.message || 'Failed to create space';
+      setErrors({ name: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
+import SearchInput from '../components/ui/SearchInput';
 import CreateSpaceModal from '../components/spaces/CreateSpaceModal';
 import { Plus, Users, DollarSign } from 'lucide-react';
 
 const SpacesPage: React.FC = () => {
   const { state } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter spaces based on search query
+  const filteredSpaces = useMemo(() => {
+    if (!searchQuery.trim()) return state.spaces;
+
+    const query = searchQuery.toLowerCase();
+    return state.spaces.filter(
+      (space) =>
+        space.name.toLowerCase().includes(query) ||
+        space.description.toLowerCase().includes(query) ||
+        space.currency.toLowerCase().includes(query)
+    );
+  }, [state.spaces, searchQuery]);
 
   if (state.isLoading) {
     return (
@@ -31,6 +46,17 @@ const SpacesPage: React.FC = () => {
         </Button>
       </div>
 
+      {state.spaces.length > 0 && (
+        <div className="mb-6">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search spaces by name, description, or currency..."
+            className="max-w-md"
+          />
+        </div>
+      )}
+
       {state.spaces.length === 0 ? (
         <div className="text-center py-12">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -45,9 +71,17 @@ const SpacesPage: React.FC = () => {
             Create Your First Space
           </Button>
         </div>
+      ) : filteredSpaces.length === 0 ? (
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No spaces found</h3>
+          <p className="text-gray-500 mb-6">
+            Try adjusting your search or create a new space
+          </p>
+          <Button onClick={() => setSearchQuery('')}>Clear Search</Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {state.spaces.map((space) => (
+          {filteredSpaces.map((space) => (
             <Link
               key={space.id}
               to={`/spaces/${space.id}`}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../contexts/ToastContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { UserPlus, ArrowLeft } from 'lucide-react';
@@ -8,6 +9,7 @@ import { UserPlus, ArrowLeft } from 'lucide-react';
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { state, register, clearError } = useApp();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -53,9 +55,11 @@ const RegisterPage: React.FC = () => {
 
     try {
       await register(formData.name.trim(), formData.email.trim(), formData.password);
+      toast.success('Account created successfully! Welcome to Finance App.');
       navigate('/spaces');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
     }
   };
 

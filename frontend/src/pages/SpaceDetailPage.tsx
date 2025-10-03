@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../contexts/ToastContext';
+import { usePolling } from '../hooks/usePolling';
 import { spacesApi, pledgesApi, payoutsApi, paymentsApi } from '../api/services';
 import {
   SpaceWithMembers,
@@ -15,6 +17,8 @@ import {
 } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
+import FilterSelect from '../components/ui/FilterSelect';
+import SearchInput from '../components/ui/SearchInput';
 import PledgeList from '../components/pledges/PledgeList';
 import CreatePledgeModal from '../components/pledges/CreatePledgeModal';
 import PledgeDetailModal from '../components/pledges/PledgeDetailModal';
@@ -29,6 +33,7 @@ const SpaceDetailPage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const navigate = useNavigate();
   const { state, setCurrentSpace } = useApp();
+  const toast = useToast();
   const [space, setSpace] = useState<SpaceWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +58,13 @@ const SpaceDetailPage: React.FC = () => {
 
   // Payment-related state
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
+
+  // Last updated timestamp
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Filter and search state
+  const [pledgeSearch, setPledgeSearch] = useState('');
+  const [payoutFilter, setPayoutFilter] = useState('');
 
   useEffect(() => {
     const loadSpace = async () => {
@@ -114,18 +126,36 @@ const SpaceDetailPage: React.FC = () => {
   };
 
   const handleCreatePledge = async (pledgeData: PledgeCreate) => {
-    await pledgesApi.createPledge(pledgeData);
-    await loadPledges();
+    try {
+      await pledgesApi.createPledge(pledgeData);
+      toast.success('Pledge created successfully!');
+      await loadPledges();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create pledge');
+      throw error;
+    }
   };
 
   const handleUpdatePledge = async (pledgeId: string, updateData: PledgeUpdate) => {
-    await pledgesApi.updatePledge(pledgeId, updateData);
-    await loadPledges();
+    try {
+      await pledgesApi.updatePledge(pledgeId, updateData);
+      toast.success('Pledge updated successfully!');
+      await loadPledges();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update pledge');
+      throw error;
+    }
   };
 
   const handleDeletePledge = async (pledgeId: string) => {
-    await pledgesApi.deletePledge(pledgeId);
-    await loadPledges();
+    try {
+      await pledgesApi.deletePledge(pledgeId);
+      toast.success('Pledge deleted successfully!');
+      await loadPledges();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete pledge');
+      throw error;
+    }
   };
 
   const handlePledgeClick = (pledge: Pledge) => {
@@ -148,8 +178,14 @@ const SpaceDetailPage: React.FC = () => {
   };
 
   const handleCreatePayout = async (payoutData: PayoutCreate) => {
-    await payoutsApi.createPayout(payoutData);
-    await loadPayouts();
+    try {
+      await payoutsApi.createPayout(payoutData);
+      toast.success('Payout proposal created! Awaiting member consent.');
+      await loadPayouts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create payout');
+      throw error;
+    }
   };
 
   const handlePayoutClick = async (payout: Payout) => {
@@ -176,22 +212,34 @@ const SpaceDetailPage: React.FC = () => {
   };
 
   const handleSubmitConsent = async (payoutId: string, consent: ConsentCreate) => {
-    await payoutsApi.submitConsent(payoutId, consent);
-    // Reload consent data
-    if (selectedPayout) {
-      const [summary, consentList] = await Promise.all([
-        payoutsApi.getConsentSummary(selectedPayout.id),
-        payoutsApi.getPayoutConsents(selectedPayout.id)
-      ]);
-      setConsentSummary(summary);
-      setConsents(consentList);
+    try {
+      await payoutsApi.submitConsent(payoutId, consent);
+      toast.success(`Your ${consent.approved ? 'approval' : 'rejection'} has been recorded.`);
+      // Reload consent data
+      if (selectedPayout) {
+        const [summary, consentList] = await Promise.all([
+          payoutsApi.getConsentSummary(selectedPayout.id),
+          payoutsApi.getPayoutConsents(selectedPayout.id)
+        ]);
+        setConsentSummary(summary);
+        setConsents(consentList);
+      }
+      await loadPayouts(); // Refresh payout list
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit consent');
+      throw error;
     }
-    await loadPayouts(); // Refresh payout list
   };
 
   const handleExecutePayout = async (payoutId: string) => {
-    await payoutsApi.executePayout(payoutId);
-    await loadPayouts();
+    try {
+      await payoutsApi.executePayout(payoutId);
+      toast.success('Payout executed successfully! Processing payment...');
+      await loadPayouts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to execute payout');
+      throw error;
+    }
   };
 
   // Check if current user is admin (check if they have admin role in the space)
@@ -204,6 +252,25 @@ const SpaceDetailPage: React.FC = () => {
     ? consents.find(c => c.user_id === state.user?.id && c.payout_id === selectedPayout.id)
     : null;
 
+  // Filter pledges based on search
+  const filteredPledges = useMemo(() => {
+    if (!pledgeSearch.trim()) return pledges;
+
+    const query = pledgeSearch.toLowerCase();
+    return pledges.filter(
+      (pledge) =>
+        pledge.description.toLowerCase().includes(query) ||
+        pledge.amount.toString().includes(query)
+    );
+  }, [pledges, pledgeSearch]);
+
+  // Filter payouts based on status
+  const filteredPayouts = useMemo(() => {
+    if (!payoutFilter) return payouts;
+
+    return payouts.filter((payout) => payout.status === payoutFilter);
+  }, [payouts, payoutFilter]);
+
   const loadPaymentMethodStatus = async () => {
     try {
       const response = await paymentsApi.getPaymentMethods();
@@ -213,6 +280,34 @@ const SpaceDetailPage: React.FC = () => {
       setHasPaymentMethod(false);
     }
   };
+
+  // Refresh data function for polling
+  const refreshData = useCallback(async () => {
+    if (!spaceId || !space) return;
+
+    try {
+      // Silently refresh data in background without showing loading states
+      const [spaceData, pledgeData, payoutData] = await Promise.all([
+        spacesApi.getSpace(spaceId),
+        pledgesApi.getPledges(spaceId),
+        payoutsApi.getPayouts(spaceId)
+      ]);
+
+      setSpace(spaceData);
+      setPledges(pledgeData);
+      setPayouts(payoutData);
+      setLastUpdated(new Date());
+    } catch (err) {
+      // Silently fail - don't show errors during background refresh
+      console.error('Background refresh failed:', err);
+    }
+  }, [spaceId, space]);
+
+  // Enable polling when space is loaded and user is on the page
+  usePolling(refreshData, {
+    interval: 30000, // 30 seconds
+    enabled: !!space && !loading
+  });
 
   if (loading) {
     return (
@@ -241,7 +336,7 @@ const SpaceDetailPage: React.FC = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
@@ -251,16 +346,23 @@ const SpaceDetailPage: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{space.name}</h1>
-            <p className="text-gray-600">{space.description}</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{space.name}</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <p className="text-sm sm:text-base text-gray-600">{space.description}</p>
+              <span className="text-xs text-gray-400">
+                • Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            </div>
           </div>
         </div>
         <Button
           variant="secondary"
+          size="sm"
           onClick={() => navigate(`/spaces/${spaceId}/settings`)}
+          className="self-start sm:self-auto"
         >
-          <Settings className="h-4 w-4 mr-2" />
-          Settings
+          <Settings className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Settings</span>
         </Button>
       </div>
 
@@ -300,10 +402,10 @@ const SpaceDetailPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
           <button
-            className={`border-b-2 py-2 px-1 text-sm font-medium ${
+            className={`border-b-2 py-2 px-1 text-xs sm:text-sm font-medium whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -313,7 +415,7 @@ const SpaceDetailPage: React.FC = () => {
             Overview
           </button>
           <button
-            className={`border-b-2 py-2 px-1 text-sm font-medium ${
+            className={`border-b-2 py-2 px-1 text-xs sm:text-sm font-medium whitespace-nowrap ${
               activeTab === 'pledges'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -323,7 +425,7 @@ const SpaceDetailPage: React.FC = () => {
             Pledges ({pledges.length})
           </button>
           <button
-            className={`border-b-2 py-2 px-1 text-sm font-medium ${
+            className={`border-b-2 py-2 px-1 text-xs sm:text-sm font-medium whitespace-nowrap ${
               activeTab === 'payouts'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -333,7 +435,7 @@ const SpaceDetailPage: React.FC = () => {
             Payouts ({payouts.length})
           </button>
           <button
-            className={`border-b-2 py-2 px-1 text-sm font-medium ${
+            className={`border-b-2 py-2 px-1 text-xs sm:text-sm font-medium whitespace-nowrap ${
               activeTab === 'members'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -434,15 +536,25 @@ const SpaceDetailPage: React.FC = () => {
 
       {activeTab === 'pledges' && (
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">All Pledges</h3>
             <Button onClick={() => setIsCreatePledgeModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Pledge
             </Button>
           </div>
+          {pledges.length > 0 && (
+            <div className="mb-4">
+              <SearchInput
+                value={pledgeSearch}
+                onChange={setPledgeSearch}
+                placeholder="Search pledges by description or amount..."
+                className="max-w-md"
+              />
+            </div>
+          )}
           <PledgeList
-            pledges={pledges}
+            pledges={filteredPledges}
             isLoading={pledgesLoading}
             onPledgeClick={handlePledgeClick}
           />
@@ -451,7 +563,7 @@ const SpaceDetailPage: React.FC = () => {
 
       {activeTab === 'payouts' && (
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">All Payouts</h3>
             <Button
               onClick={() => setIsCreatePayoutModalOpen(true)}
@@ -468,8 +580,23 @@ const SpaceDetailPage: React.FC = () => {
               </p>
             </div>
           )}
+          {payouts.length > 0 && (
+            <div className="mb-4">
+              <FilterSelect
+                value={payoutFilter}
+                onChange={setPayoutFilter}
+                options={[
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'executed', label: 'Executed' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ]}
+                label="Status"
+              />
+            </div>
+          )}
           <PayoutList
-            payouts={payouts}
+            payouts={filteredPayouts}
             isLoading={payoutsLoading}
             onPayoutClick={handlePayoutClick}
           />
