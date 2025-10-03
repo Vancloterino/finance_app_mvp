@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentMethod } from '../../types';
 import { paymentsApi } from '../../api/services';
+import { useToast } from '../../contexts/ToastContext';
 import Button from '../ui/Button';
 import {
   CreditCard,
@@ -21,6 +22,7 @@ const PaymentMethodsList: React.FC<PaymentMethodsListProps> = ({
   onAddPaymentMethod,
   refreshTrigger = 0
 }) => {
+  const { showToast } = useToast();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +51,10 @@ const PaymentMethodsList: React.FC<PaymentMethodsListProps> = ({
       setActionLoading(paymentMethodId);
       await paymentsApi.setDefaultPaymentMethod(paymentMethodId);
       await loadPaymentMethods(); // Refresh the list
+      showToast('Default payment method updated successfully', 'success');
     } catch (err: any) {
       console.error('Failed to set default payment method:', err);
-      // TODO: Show error toast
+      showToast(err.message || 'Failed to set default payment method', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -66,9 +69,10 @@ const PaymentMethodsList: React.FC<PaymentMethodsListProps> = ({
       setActionLoading(paymentMethodId);
       await paymentsApi.removePaymentMethod(paymentMethodId);
       await loadPaymentMethods(); // Refresh the list
+      showToast('Payment method removed successfully', 'success');
     } catch (err: any) {
       console.error('Failed to remove payment method:', err);
-      // TODO: Show error toast
+      showToast(err.message || 'Failed to remove payment method', 'error');
     } finally {
       setActionLoading(null);
     }

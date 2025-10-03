@@ -21,6 +21,11 @@ class UserUpdate(BaseModel):
     profile_image_url: Optional[str] = None
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class User(UserBase):
     id: UUID
     auth_id: str

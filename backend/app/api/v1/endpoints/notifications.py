@@ -16,8 +16,15 @@ def test_email(
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
-    """Test email functionality (development/admin only)"""
-    # TODO: Add admin role check - currently any authenticated user can access
+    """Test email functionality (development only)"""
+    from app.core.config import settings
+
+    # Restrict to development environment only
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint is only available in development mode"
+        )
 
     html_content = f"""
     <html>

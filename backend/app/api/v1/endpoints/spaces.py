@@ -48,12 +48,12 @@ def get_space(
             detail="Space not found"
         )
 
-    # TODO: Check if user is member
-    # if not SpaceService.is_space_member(db, space_id, current_user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return space
 
@@ -68,12 +68,12 @@ def update_space(
     """Update a space (admin only)"""
     user_id = current_user_id
 
-    # TODO: Check if user is admin
-    # if not SpaceService.is_space_admin(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can update spaces"
-    #     )
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can update spaces"
+        )
 
     space = SpaceService.update_space(db, space_id, space_update)
     if not space:
@@ -94,12 +94,12 @@ def get_space_members(
     """Get all members of a space"""
     user_id = current_user_id
 
-    # TODO: Check if user is member
-    # if not SpaceService.is_space_member(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return SpaceService.get_space_members(db, space_id)
 
@@ -114,12 +114,12 @@ def add_space_member(
     """Add a member to a space (admin only)"""
     user_id = current_user_id
 
-    # TODO: Check if user is admin
-    # if not SpaceService.is_space_admin(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can add members"
-    #     )
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can add members"
+        )
 
     allocation = SpaceService.add_member(db, space_id, member)
     if not allocation:
@@ -141,15 +141,15 @@ def remove_space_member(
     """Remove a member from a space (admin only or self)"""
     user_id = current_user_id
 
-    # TODO: Check if user is admin or removing themselves
-    # is_admin = SpaceService.is_space_admin(db, space_id, user_id)
-    # is_self_removal = user_id == member_user_id
-    #
-    # if not (is_admin or is_self_removal):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can remove members, or users can remove themselves"
-    #     )
+    # Verify user is admin or removing themselves
+    is_admin = SpaceService.is_space_admin(db, space_id, user_id)
+    is_self_removal = user_id == member_user_id
+
+    if not (is_admin or is_self_removal):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can remove members, or users can remove themselves"
+        )
 
     success = SpaceService.remove_member(db, space_id, member_user_id)
     if not success:
@@ -190,12 +190,12 @@ def invite_member(
             detail="User not found"
         )
 
-    # TODO: Check if current user is admin of the space
-    # if not SpaceService.is_space_admin(db, space_id, current_user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can invite members"
-    #     )
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can invite members"
+        )
 
     # For now, just return success without sending email (email server not configured)
     # In production, this would create an invitation link and send the actual email

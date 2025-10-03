@@ -104,9 +104,15 @@ class UserService:
         return True
 
     @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-        """Authenticate a user with email and password"""
-        user = UserService.get_user_by_email(db, email)
+    def authenticate_user(db: Session, email: Optional[str], password: str, user_id: Optional[UUID] = None) -> Optional[User]:
+        """Authenticate a user with email and password, or by user_id for password verification"""
+        if user_id:
+            user = UserService.get_user(db, user_id)
+        elif email:
+            user = UserService.get_user_by_email(db, email)
+        else:
+            return None
+
         if not user or not user.password_hash:
             return None
 
@@ -114,3 +120,14 @@ class UserService:
             return None
 
         return user
+
+    @staticmethod
+    def change_password(db: Session, user_id: UUID, new_password: str) -> bool:
+        """Change a user's password"""
+        db_user = db.query(User).filter(User.id == user_id).first()
+        if not db_user:
+            return False
+
+        db_user.password_hash = get_password_hash(new_password)
+        db.commit()
+        return True

@@ -111,3 +111,27 @@ def deactivate_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+
+
+@router.post("/me/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    password_data: user_schemas.PasswordChange,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Change current user's password"""
+    # Verify current password
+    user = UserService.authenticate_user(db, None, password_data.current_password, user_id=current_user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+
+    # Update password
+    success = UserService.change_password(db, current_user_id, password_data.new_password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )

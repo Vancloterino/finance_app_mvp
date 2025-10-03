@@ -19,12 +19,12 @@ def create_pledge(
     current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Create a new pledge"""
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, pledge.space_id, current_user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, pledge.space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return PledgeService.create_pledge(db, pledge, current_user_id)
 
@@ -39,12 +39,12 @@ def list_pledges(
 ):
     """List pledges, optionally filtered by space"""
     if space_id:
-        # TODO: Verify user is member of the space
-        # if not SpaceService.is_space_member(db, space_id, current_user_id):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Not a member of this space"
-        #     )
+        # Verify user is member of the space
+        if not SpaceService.is_space_member(db, space_id, current_user_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this space"
+            )
         return PledgeService.get_space_pledges(db, space_id, skip, limit)
     else:
         return PledgeService.get_user_pledges(db, current_user_id, skip=skip, limit=limit)
@@ -78,12 +78,12 @@ def get_pledge(
             detail="Pledge not found"
         )
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, pledge.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, pledge.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return pledge
 
@@ -99,12 +99,12 @@ def get_space_pledge_total(
     """Get total pledged amount for a space"""
     user_id = current_user_id
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     total = PledgeService.get_space_total_pledges(db, space_id, currency)
     return {
@@ -125,12 +125,12 @@ def get_my_space_balance(
     """Get current user's balance in a space"""
     user_id = current_user_id
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     balance = PledgeService.get_user_balance(db, user_id, space_id, currency)
     pledged_total = PledgeService.get_user_space_pledges_total(db, user_id, space_id, currency)

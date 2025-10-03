@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
 
     # Stripe
     STRIPE_SECRET_KEY: str = "sk_test_dev_key"
@@ -55,6 +57,34 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
+
+    def validate_production_config(self):
+        """Validate critical configuration for production environment"""
+        errors = []
+
+        if self.ENVIRONMENT == "production":
+            # Check SECRET_KEY is not default
+            if self.SECRET_KEY == "dev-secret-key-change-in-production":
+                errors.append("SECRET_KEY must be changed from default value in production")
+
+            # Check Stripe keys are not test keys
+            if self.STRIPE_SECRET_KEY.startswith("sk_test"):
+                errors.append("STRIPE_SECRET_KEY must be a live key in production (not sk_test_)")
+
+            if self.STRIPE_PUBLISHABLE_KEY.startswith("pk_test"):
+                errors.append("STRIPE_PUBLISHABLE_KEY must be a live key in production (not pk_test_)")
+
+            # Check database is not using default credentials
+            if "finance_user:finance_pass" in self.DATABASE_URL:
+                errors.append("DATABASE_URL must not use default credentials in production")
+
+            # Check CORS origins are properly configured
+            if "localhost" in str(self.CORS_ORIGINS):
+                errors.append("CORS_ORIGINS should not include localhost in production")
+
+        if errors:
+            error_msg = "Production configuration validation failed:\n" + "\n".join(f"  - {err}" for err in errors)
+            raise ValueError(error_msg)
 
     class Config:
         env_file = ".env"

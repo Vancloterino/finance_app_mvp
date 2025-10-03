@@ -41,12 +41,12 @@ def list_payouts(
     """List payouts for a space"""
     user_id = current_user_id
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return PayoutService.get_space_payouts(db, space_id, skip, limit)
 
@@ -67,12 +67,12 @@ def get_payout(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return payout
 
@@ -95,12 +95,12 @@ def submit_consent(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     consent_record = PayoutService.submit_consent(db, payout_id, user_id, consent)
     if not consent_record:
@@ -129,12 +129,12 @@ def get_payout_consents(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     return PayoutService.get_payout_consents(db, payout_id)
 
@@ -156,12 +156,12 @@ def get_consent_summary(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Not a member of this space"
-    #     )
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
 
     summary = PayoutService.get_consent_summary(db, payout_id)
     return {
@@ -192,12 +192,12 @@ def execute_payout(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is admin of the space
-    # if not SpaceService.is_space_admin(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can execute payouts"
-    #     )
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can execute payouts"
+        )
 
     success = PayoutService.execute_payout(db, payout_id)
     if not success:
@@ -224,12 +224,12 @@ def process_payout_payments(
             detail="Payout not found"
         )
 
-    # TODO: Verify user is admin of the space
-    # if not SpaceService.is_space_admin(db, payout.space_id, user_id):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Only space admins can process payout payments"
-    #     )
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, payout.space_id, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can process payout payments"
+        )
 
     try:
         result = PayoutService.process_payout_payments(db, payout_id)
