@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.schemas import pledge as pledge_schemas
 from app.services.pledge import PledgeService
 from app.services.space import SpaceService
@@ -15,20 +16,17 @@ router = APIRouter()
 def create_pledge(
     pledge: pledge_schemas.PledgeCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Create a new pledge"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
     # TODO: Verify user is member of the space
-    # if not SpaceService.is_space_member(db, pledge.space_id, user_id):
+    # if not SpaceService.is_space_member(db, pledge.space_id, current_user_id):
     #     raise HTTPException(
     #         status_code=status.HTTP_403_FORBIDDEN,
     #         detail="Not a member of this space"
     #     )
 
-    return PledgeService.create_pledge(db, pledge, user_id)
+    return PledgeService.create_pledge(db, pledge, current_user_id)
 
 
 @router.get("/", response_model=List[pledge_schemas.Pledge])
@@ -37,22 +35,19 @@ def list_pledges(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """List pledges, optionally filtered by space"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
     if space_id:
         # TODO: Verify user is member of the space
-        # if not SpaceService.is_space_member(db, space_id, user_id):
+        # if not SpaceService.is_space_member(db, space_id, current_user_id):
         #     raise HTTPException(
         #         status_code=status.HTTP_403_FORBIDDEN,
         #         detail="Not a member of this space"
         #     )
         return PledgeService.get_space_pledges(db, space_id, skip, limit)
     else:
-        return PledgeService.get_user_pledges(db, user_id, skip=skip, limit=limit)
+        return PledgeService.get_user_pledges(db, current_user_id, skip=skip, limit=limit)
 
 
 @router.get("/me", response_model=List[pledge_schemas.Pledge])
@@ -61,24 +56,20 @@ def list_my_pledges(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """List current user's pledges"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    return PledgeService.get_user_pledges(db, user_id, space_id, skip, limit)
+    return PledgeService.get_user_pledges(db, current_user_id, space_id, skip, limit)
 
 
 @router.get("/{pledge_id}", response_model=pledge_schemas.Pledge)
 def get_pledge(
     pledge_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get a specific pledge"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     pledge = PledgeService.get_pledge(db, pledge_id)
     if not pledge:
@@ -103,11 +94,10 @@ def get_space_pledge_total(
     space_id: UUID,
     currency: str = Query(..., description="Currency code (e.g., USD)"),
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get total pledged amount for a space"""
-    # TODO: Get current user from auth and verify membership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Verify user is member of the space
     # if not SpaceService.is_space_member(db, space_id, user_id):
@@ -130,11 +120,10 @@ def get_my_space_balance(
     space_id: UUID,
     currency: str = Query(..., description="Currency code (e.g., USD)"),
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get current user's balance in a space"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Verify user is member of the space
     # if not SpaceService.is_space_member(db, space_id, user_id):

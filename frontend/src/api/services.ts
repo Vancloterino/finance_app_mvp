@@ -110,8 +110,19 @@ export const pledgesApi = {
   getPledge: (pledgeId: string): Promise<Pledge> =>
     api.get(`/pledges/${pledgeId}`),
 
-  createPledge: (pledgeData: PledgeCreate): Promise<Pledge> =>
-    api.post('/pledges', pledgeData),
+  createPledge: (pledgeData: PledgeCreate): Promise<Pledge> => {
+    // Map frontend field names to backend field names
+    const backendPledgeData = {
+      space_id: pledgeData.space_id,
+      amount_minor: pledgeData.amount_minor,
+      currency: pledgeData.currency,
+      memo: pledgeData.description, // Map description to memo for backend
+    };
+    return api.post('/pledges', backendPledgeData).then((response: any) => ({
+      ...response,
+      description: response.memo, // Map memo back to description for frontend
+    }));
+  },
 
   updatePledge: (pledgeId: string, pledgeData: PledgeUpdate): Promise<Pledge> =>
     api.put(`/pledges/${pledgeId}`, pledgeData),

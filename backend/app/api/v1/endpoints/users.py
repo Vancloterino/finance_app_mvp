@@ -55,7 +55,7 @@ def get_current_user(
 def get_user(
     user_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get user by ID"""
     user = UserService.get_user(db, user_id)

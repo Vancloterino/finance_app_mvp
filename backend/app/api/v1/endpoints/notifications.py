@@ -1,7 +1,9 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.services.notification import NotificationService
 from app.schemas.notification import EmailTestRequest
 
@@ -12,10 +14,10 @@ router = APIRouter()
 def test_email(
     email_request: EmailTestRequest,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Test email functionality (development/admin only)"""
-    # TODO: Add admin-only authentication check
+    # TODO: Add admin role check - currently any authenticated user can access
 
     html_content = f"""
     <html>

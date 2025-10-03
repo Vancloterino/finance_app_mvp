@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.services.stripe_service import StripeService
 from app.services.user import UserService
 
@@ -13,11 +14,10 @@ router = APIRouter()
 @router.post("/setup-intent")
 def create_setup_intent(
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Create a SetupIntent for saving payment methods"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     user = UserService.get_user(db, user_id)
     if not user:
@@ -58,11 +58,10 @@ def create_setup_intent(
 @router.get("/payment-methods")
 def get_payment_methods(
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get user's payment methods"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     user = UserService.get_user(db, user_id)
     if not user or not user.stripe_customer_id:
@@ -96,11 +95,10 @@ def get_payment_methods(
 def set_default_payment_method(
     payment_method_id: str,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Set default payment method for user"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     user = UserService.update_payment_method(db, user_id, payment_method_id)
     if not user:
@@ -116,11 +114,10 @@ def set_default_payment_method(
 def remove_payment_method(
     payment_method_id: str,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Remove a payment method"""
-    # TODO: Get current user from auth and verify ownership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     try:
         StripeService.detach_payment_method(payment_method_id)

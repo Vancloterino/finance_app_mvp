@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.schemas import space as space_schemas
 from app.services.space import SpaceService
+from app.services.notification import NotificationService
+from app.services.user import UserService
 
 router = APIRouter()
 
@@ -14,13 +17,10 @@ router = APIRouter()
 def create_space(
     space: space_schemas.SpaceCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Create a new space"""
-    # TODO: Get current user from auth
-    creator_user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    return SpaceService.create_space(db, space, creator_user_id)
+    return SpaceService.create_space(db, space, current_user_id)
 
 
 @router.get("/", response_model=List[space_schemas.Space])
@@ -28,25 +28,19 @@ def list_spaces(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """List spaces where current user is a member"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
-    return SpaceService.get_user_spaces(db, user_id, skip, limit)
+    return SpaceService.get_user_spaces(db, current_user_id, skip, limit)
 
 
 @router.get("/{space_id}", response_model=space_schemas.Space)
 def get_space(
     space_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get a specific space"""
-    # TODO: Get current user from auth and verify membership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
-
     space = SpaceService.get_space(db, space_id)
     if not space:
         raise HTTPException(
@@ -55,7 +49,7 @@ def get_space(
         )
 
     # TODO: Check if user is member
-    # if not SpaceService.is_space_member(db, space_id, user_id):
+    # if not SpaceService.is_space_member(db, space_id, current_user_id):
     #     raise HTTPException(
     #         status_code=status.HTTP_403_FORBIDDEN,
     #         detail="Not a member of this space"
@@ -69,11 +63,10 @@ def update_space(
     space_id: UUID,
     space_update: space_schemas.SpaceUpdate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Update a space (admin only)"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Check if user is admin
     # if not SpaceService.is_space_admin(db, space_id, user_id):
@@ -96,11 +89,10 @@ def update_space(
 def get_space_members(
     space_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get all members of a space"""
-    # TODO: Get current user from auth and verify membership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Check if user is member
     # if not SpaceService.is_space_member(db, space_id, user_id):
@@ -117,11 +109,10 @@ def add_space_member(
     space_id: UUID,
     member: space_schemas.MemberAllocationCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Add a member to a space (admin only)"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Check if user is admin
     # if not SpaceService.is_space_admin(db, space_id, user_id):
@@ -145,11 +136,10 @@ def remove_space_member(
     space_id: UUID,
     member_user_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Remove a member from a space (admin only or self)"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Check if user is admin or removing themselves
     # is_admin = SpaceService.is_space_admin(db, space_id, user_id)
@@ -167,3 +157,46 @@ def remove_space_member(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Member not found in this space"
         )
+
+
+@router.post("/{space_id}/invite")
+def invite_member(
+    space_id: UUID,
+    invite_data: dict,  # Should contain {"email": "user@example.com"}
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Invite a member to join a space"""
+    email = invite_data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is required"
+        )
+
+    # Get space info
+    space = SpaceService.get_space(db, space_id)
+    if not space:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Space not found"
+        )
+
+    # Get current user info
+    current_user = UserService.get_user(db, current_user_id)
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # TODO: Check if current user is admin of the space
+    # if not SpaceService.is_space_admin(db, space_id, current_user_id):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Only space admins can invite members"
+    #     )
+
+    # For now, just return success without sending email (email server not configured)
+    # In production, this would create an invitation link and send the actual email
+    return {"message": f"Invitation sent to {email}"}

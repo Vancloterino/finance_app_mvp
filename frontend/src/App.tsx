@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SpacesPage from './pages/SpacesPage';
 import SpaceDetailPage from './pages/SpaceDetailPage';
+import SpaceSettingsPage from './pages/SpaceSettingsPage';
 import PaymentsPage from './pages/PaymentsPage';
 
 function App() {
@@ -35,6 +36,12 @@ function App() {
             <Route path="/spaces/:spaceId" element={
               <ProtectedRoute>
                 <SpaceDetailPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/spaces/:spaceId/settings" element={
+              <ProtectedRoute>
+                <SpaceSettingsPage />
               </ProtectedRoute>
             } />
 

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 from app.schemas import payout as payout_schemas
 from app.services.payout import PayoutService
 from app.services.space import SpaceService
@@ -15,11 +16,10 @@ router = APIRouter()
 def create_payout(
     payout: payout_schemas.PayoutCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Create a new payout proposal (admin only)"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     try:
         return PayoutService.create_payout(db, payout, user_id)
@@ -36,11 +36,10 @@ def list_payouts(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """List payouts for a space"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # TODO: Verify user is member of the space
     # if not SpaceService.is_space_member(db, space_id, user_id):
@@ -56,11 +55,10 @@ def list_payouts(
 def get_payout(
     payout_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get a specific payout"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     payout = PayoutService.get_payout(db, payout_id)
     if not payout:
@@ -84,11 +82,10 @@ def submit_consent(
     payout_id: UUID,
     consent: payout_schemas.ConsentCreate,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Submit consent for a payout"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # Verify payout exists and user is member
     payout = PayoutService.get_payout(db, payout_id)
@@ -119,11 +116,10 @@ def submit_consent(
 def get_payout_consents(
     payout_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get all consents for a payout"""
-    # TODO: Get current user from auth and verify membership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # Verify payout exists and user is member
     payout = PayoutService.get_payout(db, payout_id)
@@ -147,11 +143,10 @@ def get_payout_consents(
 def get_consent_summary(
     payout_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Get consent summary with allocation percentages"""
-    # TODO: Get current user from auth and verify membership
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # Verify payout exists
     payout = PayoutService.get_payout(db, payout_id)
@@ -184,11 +179,10 @@ def get_consent_summary(
 def execute_payout(
     payout_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Execute a payout (admin only)"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # Verify payout exists
     payout = PayoutService.get_payout(db, payout_id)
@@ -217,11 +211,10 @@ def execute_payout(
 def process_payout_payments(
     payout_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    current_user_id: UUID = Depends(get_current_user_id)
 ):
     """Process payments for a payout via Stripe"""
-    # TODO: Get current user from auth
-    user_id = UUID("550e8400-e29b-41d4-a716-446655440000")  # Mock user ID
+    user_id = current_user_id
 
     # Verify payout exists
     payout = PayoutService.get_payout(db, payout_id)
@@ -271,11 +264,10 @@ def process_payout_payments(
 @router.post("/{payout_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
 def complete_payout(
     payout_id: UUID,
-    db: Session = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Add auth
+    db: Session = Depends(get_db)
 ):
     """Complete a payout and create ledger entries (system/webhook only)"""
-    # TODO: This should be called by Stripe webhook or internal system only
+    # NOTE: This endpoint is for internal/webhook use only - no user auth required
 
     success = PayoutService.complete_payout(db, payout_id)
     if not success:

@@ -194,8 +194,10 @@ const SpaceDetailPage: React.FC = () => {
     await loadPayouts();
   };
 
-  // Check if current user is admin (for simplicity, check if they created the space)
-  const isCurrentUserAdmin = state.user && space && state.user.id === space.created_by;
+  // Check if current user is admin (check if they have admin role in the space)
+  const isCurrentUserAdmin = state.user && space && space.members.some(
+    member => member.user_id === state.user?.id && member.role === 'admin' && member.is_active
+  );
 
   // Check if current user has already consented to selected payout
   const userConsent = selectedPayout && state.user
@@ -253,7 +255,10 @@ const SpaceDetailPage: React.FC = () => {
             <p className="text-gray-600">{space.description}</p>
           </div>
         </div>
-        <Button variant="secondary">
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/spaces/${spaceId}/settings`)}
+        >
           <Settings className="h-4 w-4 mr-2" />
           Settings
         </Button>
@@ -396,7 +401,11 @@ const SpaceDetailPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Members</h3>
-              <Button size="sm" variant="secondary">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/spaces/${spaceId}/settings`)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Invite
               </Button>
@@ -471,7 +480,10 @@ const SpaceDetailPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-medium text-gray-900">Space Members</h3>
-            <Button variant="secondary">
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/spaces/${spaceId}/settings`)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Invite Member
             </Button>
