@@ -1,6 +1,8 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.database import get_db
 from app.core.security import create_access_token
@@ -10,10 +12,13 @@ from app.schemas.user import UserCreate
 from app.services.user import UserService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     login_request: LoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -90,7 +95,9 @@ def create_dev_token(
 
 
 @router.post("/register", response_model=Token)
+@limiter.limit("3/minute")
 def register(
+    request: Request,
     register_request: RegisterRequest,
     db: Session = Depends(get_db)
 ):
@@ -132,7 +139,9 @@ def register(
 
 
 @router.post("/login-email", response_model=TokenWithUser)
+@limiter.limit("5/minute")
 def login_email(
+    request: Request,
     login_request: EmailPasswordLogin,
     db: Session = Depends(get_db)
 ):

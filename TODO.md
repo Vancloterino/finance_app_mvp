@@ -215,10 +215,10 @@ Building a shared finance app MVP that allows groups to manage shared expenses w
   - [ ] Monitoring and logging setup
 
 ### Security & Compliance
-- [ ] **Security Hardening**
-  - [ ] Rate limiting implementation
-  - [ ] Security headers implementation
-  - [ ] Input validation and sanitization
+- [x] **Security Hardening (COMPLETED)**
+  - [x] Rate limiting implementation (5 requests/min for login, 3/min for register)
+  - [x] Security headers implementation (XSS, CSRF, clickjacking protection)
+  - [x] Input validation and sanitization (Pydantic validators with bleach)
 
 - [ ] **Financial Compliance**
   - [ ] Payment data encryption
@@ -242,11 +242,27 @@ Building a shared finance app MVP that allows groups to manage shared expenses w
 - ✅ Bcrypt compatibility (downgraded to compatible version)
 - ✅ Registration endpoint (now working with JWT token response)
 
-### Recent Enhancements (Latest):
+### Recent Enhancements:
+**UX Enhancements:**
 - ✅ **Toast Notification System** - Context-based toast provider with 4 notification types
 - ✅ **Real-time Polling** - Auto-refresh data every 30 seconds with visual timestamp
 - ✅ **Search & Filtering** - Search spaces, pledges; filter payouts by status
 - ✅ **Mobile Optimization** - Responsive headers, tabs, forms across all pages
 - ✅ **Profile Settings Page** - Complete user account management interface
 
-**🎉 The finance app MVP is now fully functional with enterprise-grade features and enhanced UX!** 🚀
+**Security Enhancements (Latest):**
+- ✅ **Rate Limiting** - SlowAPI integration with per-endpoint limits (auth: 3-5 req/min)
+- ✅ **Security Headers** - Comprehensive HTTP security headers middleware
+  - X-Frame-Options: DENY (clickjacking protection)
+  - X-Content-Type-Options: nosniff (MIME sniffing protection)
+  - X-XSS-Protection: enabled
+  - Content-Security-Policy: strict policy
+  - Strict-Transport-Security: HSTS for HTTPS
+  - Permissions-Policy: feature restrictions
+- ✅ **Input Validation & Sanitization** - Pydantic validators with bleach for HTML sanitization
+  - String sanitization (HTML removal, whitespace trimming)
+  - Currency code validation (ISO 4217)
+  - Email sanitization
+  - Length constraints on all text fields
+
+**🎉 The finance app MVP is now fully functional with enterprise-grade features, enhanced UX, and production-ready security!** 🚀
