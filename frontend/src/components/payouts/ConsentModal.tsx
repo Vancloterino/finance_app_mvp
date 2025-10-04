@@ -172,7 +172,7 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               <div>
                 <p className="text-sm font-medium text-green-800">Consent Submitted</p>
                 <p className="text-sm text-green-700">
-                  You have {userConsentDecision === 'APPROVE' ? 'approved' : 'denied'} this payout.
+                  You have {userConsentDecision === 'approve' ? 'approved' : 'denied'} this payout.
                 </p>
               </div>
             </div>
@@ -187,11 +187,11 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               <button
                 type="button"
                 className={`w-full flex items-center space-x-3 p-3 border rounded-lg transition-colors ${
-                  selectedDecision === 'APPROVE'
+                  selectedDecision === 'approve'
                     ? 'border-green-500 bg-green-50 text-green-700'
                     : 'border-gray-300 hover:border-green-300 hover:bg-green-50'
                 }`}
-                onClick={() => setSelectedDecision('APPROVE')}
+                onClick={() => setSelectedDecision('approve')}
               >
                 <CheckCircle className="h-5 w-5" />
                 <div className="text-left">
@@ -203,11 +203,11 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               <button
                 type="button"
                 className={`w-full flex items-center space-x-3 p-3 border rounded-lg transition-colors ${
-                  selectedDecision === 'DENY'
+                  selectedDecision === 'deny'
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-gray-300 hover:border-red-300 hover:bg-red-50'
                 }`}
-                onClick={() => setSelectedDecision('DENY')}
+                onClick={() => setSelectedDecision('deny')}
               >
                 <XCircle className="h-5 w-5" />
                 <div className="text-left">
@@ -230,7 +230,7 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder={
-                selectedDecision === 'APPROVE'
+                selectedDecision === 'approve'
                   ? 'Why do you approve this payout?'
                   : 'Why do you disagree with this payout?'
               }
@@ -257,9 +257,9 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               onClick={handleSubmit}
               loading={isSubmitting}
               disabled={isSubmitting}
-              variant={selectedDecision === 'APPROVE' ? 'default' : 'secondary'}
+              variant={selectedDecision === 'approve' ? 'default' : 'secondary'}
             >
-              Submit {selectedDecision === 'APPROVE' ? 'Approval' : 'Denial'}
+              Submit {selectedDecision === 'approve' ? 'Approval' : 'Denial'}
             </Button>
           )}
         </div>

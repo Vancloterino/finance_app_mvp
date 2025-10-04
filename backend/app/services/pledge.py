@@ -6,7 +6,7 @@ from sqlalchemy import and_, desc
 
 from app.models.pledge import Pledge
 from app.models.ledger import LedgerEntry
-from app.schemas.pledge import PledgeCreate
+from app.schemas.pledge import PledgeCreate, PledgeUpdate
 
 
 class PledgeService:
@@ -137,3 +137,38 @@ class PledgeService:
                 balance += entry.amount_minor  # Can be positive or negative
 
         return balance
+
+    @staticmethod
+    def update_pledge(db: Session, pledge_id: UUID, pledge_update: PledgeUpdate) -> Optional[Pledge]:
+        """Update a pledge"""
+        db_pledge = db.query(Pledge).filter(Pledge.id == pledge_id).first()
+        if not db_pledge:
+            return None
+
+        # Update pledge fields
+        for field, value in pledge_update.dict(exclude_unset=True).items():
+            setattr(db_pledge, field, value)
+
+        db.commit()
+        db.refresh(db_pledge)
+        return db_pledge
+
+    @staticmethod
+    def delete_pledge(db: Session, pledge_id: UUID) -> bool:
+        """Delete a pledge (soft delete by removing from database)"""
+        db_pledge = db.query(Pledge).filter(Pledge.id == pledge_id).first()
+        if not db_pledge:
+            return False
+
+        # Delete related ledger entries
+        db.query(LedgerEntry).filter(
+            and_(
+                LedgerEntry.ref_type == "PLEDGE",
+                LedgerEntry.ref_id == str(pledge_id)
+            )
+        ).delete()
+
+        # Delete the pledge
+        db.delete(db_pledge)
+        db.commit()
+        return True

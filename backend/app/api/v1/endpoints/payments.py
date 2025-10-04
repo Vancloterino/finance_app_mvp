@@ -142,3 +142,47 @@ def get_stripe_config():
     return {
         "publishable_key": settings.STRIPE_PUBLISHABLE_KEY
     }
+
+
+@router.get("/transactions")
+def get_payment_transactions(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get payment transaction history for current user"""
+    user = UserService.get_user(db, current_user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if not user.stripe_customer_id:
+        return {"transactions": [], "has_more": False}
+
+    try:
+        # Get payment intents for this customer
+        charges = StripeService.get_customer_charges(user.stripe_customer_id, limit=limit)
+
+        return {
+            "transactions": [
+                {
+                    "id": charge.id,
+                    "amount": charge.amount,
+                    "currency": charge.currency.upper(),
+                    "status": charge.status,
+                    "description": charge.description,
+                    "created": charge.created,
+                    "payment_method": charge.payment_method,
+                    "receipt_url": charge.receipt_url
+                }
+                for charge in charges.data
+            ],
+            "has_more": charges.has_more
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

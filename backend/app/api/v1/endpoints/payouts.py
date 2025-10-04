@@ -1,6 +1,6 @@
 from typing import List, Dict
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -8,6 +8,8 @@ from app.core.security import get_current_user_id
 from app.schemas import payout as payout_schemas
 from app.services.payout import PayoutService
 from app.services.space import SpaceService
+from app.services.audit import AuditService
+from app.services.user import UserService
 
 router = APIRouter()
 
@@ -15,6 +17,7 @@ router = APIRouter()
 @router.post("/", response_model=payout_schemas.Payout, status_code=status.HTTP_201_CREATED)
 def create_payout(
     payout: payout_schemas.PayoutCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
@@ -22,7 +25,24 @@ def create_payout(
     user_id = current_user_id
 
     try:
-        return PayoutService.create_payout(db, payout, user_id)
+        result = PayoutService.create_payout(db, payout, user_id)
+
+        # Audit log
+        user = UserService.get_user(db, user_id)
+        if user:
+            AuditService.log_payout_create(
+                db=db,
+                payout_id=result.id,
+                space_id=payout.space_id,
+                user_id=user_id,
+                user_email=user.email,
+                amount=str(payout.amount_minor),
+                currency=payout.currency,
+                description=payout.description,
+                request=request
+            )
+
+        return result
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -81,6 +101,7 @@ def get_payout(
 def submit_consent(
     payout_id: UUID,
     consent: payout_schemas.ConsentCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
@@ -107,6 +128,20 @@ def submit_consent(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Consent record not found for this user and payout"
+        )
+
+    # Audit log
+    user = UserService.get_user(db, user_id)
+    if user:
+        approved = consent.decision.value == "approve" if hasattr(consent.decision, 'value') else consent.decision == "approve"
+        AuditService.log_consent_submit(
+            db=db,
+            payout_id=payout_id,
+            user_id=user_id,
+            user_email=user.email,
+            approved=approved,
+            comment=consent.reason,
+            request=request
         )
 
     return consent_record
@@ -178,6 +213,7 @@ def get_consent_summary(
 @router.post("/{payout_id}/execute", status_code=status.HTTP_204_NO_CONTENT)
 def execute_payout(
     payout_id: UUID,
+    request: Request,
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
@@ -204,6 +240,19 @@ def execute_payout(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payout is not ready for execution"
+        )
+
+    # Audit log
+    user = UserService.get_user(db, user_id)
+    if user:
+        AuditService.log_payout_execute(
+            db=db,
+            payout_id=payout_id,
+            user_id=user_id,
+            user_email=user.email,
+            amount=str(payout.amount_minor),
+            currency=payout.currency,
+            request=request
         )
 
 

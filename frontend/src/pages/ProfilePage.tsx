@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../contexts/ToastContext';
+import { authApi } from '../api/services';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { User, Mail, Lock, Save } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
-  const { state } = useApp();
-  const toast = useToast();
+  const { state, dispatch } = useApp();
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: state.user?.name || '',
@@ -25,12 +26,15 @@ const ProfilePage: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: Implement profile update API call
-      // await usersApi.updateProfile(formData);
-      toast.success('Profile updated successfully!');
+      const updatedUser = await authApi.updateCurrentUser({ name: formData.name });
+
+      // Update user in global state
+      dispatch({ type: 'SET_USER', payload: updatedUser });
+
+      showToast('Profile updated successfully!', 'success');
       setIsEditing(false);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+      showToast(error.message || 'Failed to update profile', 'error');
     } finally {
       setLoading(false);
     }
@@ -40,28 +44,31 @@ const ProfilePage: React.FC = () => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match');
+      showToast('Passwords do not match', 'error');
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      showToast('Password must be at least 6 characters', 'error');
       return;
     }
 
     setLoading(true);
 
     try {
-      // TODO: Implement password change API call
-      // await usersApi.changePassword(passwordData);
-      toast.success('Password changed successfully!');
+      await authApi.changePassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+      });
+
+      showToast('Password changed successfully!', 'success');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
     } catch (error: any) {
-      toast.error(error.message || 'Failed to change password');
+      showToast(error.message || 'Failed to change password', 'error');
     } finally {
       setLoading(false);
     }

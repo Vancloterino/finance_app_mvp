@@ -50,8 +50,10 @@ export interface MemberAllocation {
   space_id: string;
   user_id: string;
   allocation_pct: number;
+  role: string;  // 'ADMIN' | 'MEMBER' | 'VIEWER'
   is_active: boolean;
-  joined_at: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface SpaceWithMembers extends Space {
@@ -89,7 +91,7 @@ export interface PledgeUpdate {
 
 // Payout types
 export type PayoutStatus = 'PROPOSED' | 'CONSENT_PENDING' | 'READY' | 'EXECUTING' | 'SETTLED' | 'FAILED';
-export type ConsentDecision = 'PENDING' | 'APPROVE' | 'DENY' | 'AUTO_APPROVE';
+export type ConsentDecision = 'pending' | 'approve' | 'deny' | 'auto_approve';
 
 export interface Payout {
   id: string;

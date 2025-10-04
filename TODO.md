@@ -3,9 +3,245 @@
 ## 🎯 Project Overview
 Building a shared finance app MVP that allows groups to manage shared expenses with democratic consent workflows and real payment processing via Stripe.
 
-## 🎉 MVP STATUS: FULLY FUNCTIONAL ✅
+## 🚨 INTEGRATION AUDIT COMPLETE - CRITICAL FIXES REQUIRED
 
-**All core features are complete and working!**
+**Audit Date:** 2025-10-04
+**Status:** 🟡 **FUNCTIONAL BUT NOT PRODUCTION-READY**
+**Production Readiness:** 73%
+
+**📊 Findings:**
+- ✅ All 5 core user flows functional end-to-end
+- 🔴 **27 Critical Issues** requiring immediate fix
+- ⚠️ **32 Warnings** should be addressed
+- 📋 **Estimated Fix Time:** ~2 weeks
+
+**📄 Full Report:** See [INTEGRATION_AUDIT_REPORT.md](INTEGRATION_AUDIT_REPORT.md)
+
+---
+
+## 🔴 CRITICAL FIXES REQUIRED (P0) - DO BEFORE PRODUCTION
+
+### Backend Critical (Priority: IMMEDIATE)
+
+#### 1. Database Performance - Missing Indexes
+**Status:** 🔴 NOT STARTED
+**Impact:** SEVERE - O(n) table scans, slow queries at scale
+**Effort:** 1 day
+
+- [ ] Create migration for missing foreign key indexes
+  - [ ] `member_allocations.space_id`, `user_id`
+  - [ ] `pledges.space_id`, `user_id`
+  - [ ] `payouts.space_id`, `status`
+  - [ ] `consents.payout_id`, `user_id`
+  - [ ] `ledger_entries (space_id, user_id, currency)` composite
+- [ ] Test query performance improvements
+- [ ] Run migration in all environments
+
+#### 2. Audit Trail Integration - Compliance Gap
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - No audit logging, compliance violations
+**Effort:** 1 day
+
+- [ ] Integrate AuditService into payouts endpoints
+- [ ] Integrate AuditService into pledges endpoints
+- [ ] Integrate AuditService into payments endpoints
+- [ ] Integrate AuditService into webhook handlers
+- [ ] Test audit log generation
+- [ ] Verify audit logs query performance
+
+#### 3. Webhook Payment Tracking - Data Integrity
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Incorrect payout completion logic
+**Effort:** 1 day
+
+- [ ] Implement proper payment status tracking
+- [ ] Track individual member payment statuses
+- [ ] Only complete payout when ALL payments succeed
+- [ ] Handle partial payment failures
+- [ ] Test with Stripe webhook simulator
+
+### Frontend Critical (Priority: IMMEDIATE)
+
+#### 4. Type Safety Violations - Runtime Errors
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - TypeScript errors, potential crashes
+**Effort:** 2 hours
+
+- [ ] Add `role` field to MemberAllocation interface
+- [ ] Add `created_at` field to MemberAllocation interface
+- [ ] Update SpaceDetailPage to use correct fields
+- [ ] Update SpaceSettingsPage to use correct fields
+- [ ] Remove TypeScript errors
+
+#### 5. Consent Decision Type Mismatch
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Wrong field usage, data corruption risk
+**Effort:** 1 hour
+
+- [ ] Update ConsentModal to use `decision` field
+- [ ] Map boolean approval to APPROVE/DENY enum
+- [ ] Update SpaceDetailPage consent handling
+- [ ] Test consent submission flow
+
+#### 6. Missing Payment Transaction History
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Feature shows mock data only
+**Effort:** 4 hours
+
+- [ ] Create backend `/payments/transactions` endpoint
+- [ ] Implement transaction history from ledger
+- [ ] Update PaymentHistory component to use real API
+- [ ] Remove mock data
+
+### API Contracts Critical (Priority: IMMEDIATE)
+
+#### 7-10. Critical Missing Endpoints
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Frontend features fail with 404
+**Effort:** 2 days
+
+- [ ] Implement `POST /auth/refresh` - Token refresh
+- [ ] Implement `PUT /pledges/{pledge_id}` - Update pledge
+- [ ] Implement `DELETE /pledges/{pledge_id}` - Delete pledge
+- [ ] Implement `GET /health` - Health check endpoint
+- [ ] Test all new endpoints
+
+### Configuration Critical (Priority: IMMEDIATE)
+
+#### 11. Empty AuditLog Migration
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Table won't be created
+**Effort:** 30 minutes
+
+- [ ] Delete empty migration file
+- [ ] Regenerate AuditLog migration
+- [ ] Test migration in development
+- [ ] Run migration
+
+#### 12. Frontend Environment Variables
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Hardcoded values, can't configure
+**Effort:** 1 hour
+
+- [ ] Create `frontend/.env.example`
+- [ ] Add VITE_API_URL configuration
+- [ ] Add VITE_STRIPE_PUBLISHABLE_KEY configuration
+- [ ] Update client.ts to use env vars
+- [ ] Update documentation
+
+#### 13. Email Configuration Mismatch
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - SMTP will fail in production
+**Effort:** 30 minutes
+
+- [ ] Standardize on EMAIL_* variables
+- [ ] Update .env.production.example
+- [ ] Test email configuration loading
+
+#### 14. Alembic Environment Variables
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Migrations won't work in production
+**Effort:** 30 minutes
+
+- [ ] Update migrations/env.py to use settings.DATABASE_URL
+- [ ] Test migrations in staging
+- [ ] Update documentation
+
+#### 15. Docker Compose Consolidation
+**Status:** 🔴 NOT STARTED
+**Impact:** CRITICAL - Confusion, inconsistent configs
+**Effort:** 1 hour
+
+- [ ] Consolidate into single docker-compose.yml with profiles, OR
+- [ ] Document clearly which file for what purpose
+- [ ] Remove duplicate configurations
+- [ ] Update README with correct usage
+
+---
+
+## ⚠️ HIGH PRIORITY FIXES (P1) - NEXT SPRINT
+
+### Remaining Missing Endpoints (12 endpoints)
+**Effort:** 2 days
+
+- [ ] `PUT /users/{user_id}` - Update user (admin)
+- [ ] `DELETE /users/{user_id}` - Delete user (admin)
+- [ ] `GET /users/{user_id}/spaces` - Get user spaces
+- [ ] `GET /users/{user_id}/balance` - Get user balance
+- [ ] `GET /users/{user_id}/ledger` - Get user ledger
+- [ ] `DELETE /spaces/{space_id}` - Delete space
+- [ ] `PUT /spaces/{space_id}/members/{user_id}` - Update allocation
+- [ ] `GET /spaces/{space_id}/balance` - Space balance
+- [ ] `GET /spaces/{space_id}/ledger` - Space ledger
+- [ ] `GET /health/detailed` - Detailed health check
+
+### Backend Improvements
+**Effort:** 2 days
+
+- [ ] Standardize error handling across all services
+- [ ] Add proper transaction rollbacks to complex operations
+- [ ] Add pagination limits (max 1000)
+- [ ] Add rate limiting to financial endpoints
+- [ ] Add cascade delete logic or cleanup handlers
+
+### Frontend Cleanup
+**Effort:** 1 day
+
+- [ ] Remove unused API methods (57% unused)
+- [ ] Remove unused type definitions
+- [ ] Fix HTTP method mismatch (PUT → PATCH for space update)
+- [ ] Align all types with backend schemas
+
+---
+
+## 🟢 MEDIUM PRIORITY (P2) - FUTURE
+
+### Production Readiness
+**Effort:** 2 days
+
+- [ ] Update Dockerfiles for production (gunicorn, nginx)
+- [ ] Implement Redis caching or remove service
+- [ ] Configure email SMTP for production
+- [ ] Add frontend code splitting
+- [ ] Add error boundaries to React app
+
+### Feature Completion
+**Effort:** 2 days
+
+- [ ] Complete space invitation email flow
+- [ ] Add Pledge.due_date field
+- [ ] Implement notification storage
+- [ ] Add refund endpoints and UI
+- [ ] Add dispute handling
+
+---
+
+## 📊 PROGRESS TRACKING
+
+### P0 Critical Fixes (15 issues)
+**Completion:** 0/15 (0%)
+**Estimated Time:** 5.5 days
+**Status:** 🔴 NOT STARTED
+
+### P1 High Priority (17 issues)
+**Completion:** 0/17 (0%)
+**Estimated Time:** 5 days
+**Status:** ⚠️ PENDING P0
+
+### P2 Medium Priority (10 issues)
+**Completion:** 0/10 (0%)
+**Estimated Time:** 3 days
+**Status:** 🟢 FUTURE
+
+### Overall Production Readiness
+**Current:** 73%
+**After P0:** 90% ✅ PRODUCTION READY
+**After P1:** 98% ✅ FULLY READY
+**After P2:** 100% ✅ PERFECT
+
+---
+
+## 🎉 COMPLETED FEATURES (MVP)
 
 ## 📋 Development Progress
 

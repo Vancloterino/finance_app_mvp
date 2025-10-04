@@ -38,6 +38,12 @@ export const authApi = {
   getCurrentUser: (): Promise<User> =>
     api.get('/users/me'),
 
+  updateCurrentUser: (userData: UserUpdate): Promise<User> =>
+    api.patch('/users/me', userData),
+
+  changePassword: (passwordData: { current_password: string; new_password: string }): Promise<void> =>
+    api.post('/users/me/change-password', passwordData),
+
   refreshToken: (): Promise<{ access_token: string; token_type: string }> =>
     api.post('/auth/refresh'),
 };

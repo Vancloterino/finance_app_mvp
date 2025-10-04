@@ -88,6 +88,80 @@ def get_pledge(
     return pledge
 
 
+@router.put("/{pledge_id}", response_model=pledge_schemas.Pledge)
+def update_pledge(
+    pledge_id: UUID,
+    pledge_update: pledge_schemas.PledgeUpdate,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Update a pledge"""
+    # Get existing pledge
+    existing_pledge = PledgeService.get_pledge(db, pledge_id)
+    if not existing_pledge:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pledge not found"
+        )
+
+    # Verify user owns this pledge
+    if existing_pledge.user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own pledges"
+        )
+
+    # Verify user is still a member of the space
+    if not SpaceService.is_space_member(db, existing_pledge.space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
+
+    # Update the pledge
+    updated_pledge = PledgeService.update_pledge(db, pledge_id, pledge_update)
+    if not updated_pledge:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update pledge"
+        )
+
+    return updated_pledge
+
+
+@router.delete("/{pledge_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pledge(
+    pledge_id: UUID,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Delete a pledge"""
+    # Get existing pledge
+    existing_pledge = PledgeService.get_pledge(db, pledge_id)
+    if not existing_pledge:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pledge not found"
+        )
+
+    # Verify user owns this pledge
+    if existing_pledge.user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own pledges"
+        )
+
+    # Delete the pledge
+    success = PledgeService.delete_pledge(db, pledge_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete pledge"
+        )
+
+    return None
+
+
 # Additional endpoints for pledge analytics
 @router.get("/spaces/{space_id}/total")
 def get_space_pledge_total(
