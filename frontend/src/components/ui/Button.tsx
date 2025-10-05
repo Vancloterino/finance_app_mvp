@@ -36,11 +36,15 @@ const Button: React.FC<ButtonProps> = ({
 
   const widthClass = fullWidth ? 'w-full' : '';
 
-  // When custom className is provided, it takes full control
-  // Otherwise use variant and size classes
-  const classes = className
-    ? [baseClasses, widthClass, className].join(' ')
-    : [baseClasses, variantClasses[variant], sizeClasses[size], widthClass].join(' ');
+  // Always include base, variant, size, and width classes
+  // Custom className is added last for additional overrides
+  const classes = [
+    baseClasses,
+    variantClasses[variant],
+    sizeClasses[size],
+    widthClass,
+    className
+  ].filter(Boolean).join(' ');
 
   return (
     <button

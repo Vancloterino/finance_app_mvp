@@ -1,9 +1,10 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Button from '../ui/Button';
-import { Home, Users, CreditCard, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Home, Users, CreditCard, Settings, LogOut, Menu, X, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
+import SettingsDialog from '../SettingsDialog';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,17 +15,42 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+    setUserMenuOpen(false);
   };
+
+  const handleOpenSettings = () => {
+    setSettingsOpen(true);
+    setUserMenuOpen(false);
+  };
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   const navigation = [
     { name: 'Spaces', href: '/spaces', icon: Home },
     { name: 'My Account', href: '/account', icon: Users },
     { name: 'Payments', href: '/payments', icon: CreditCard },
-    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const isCurrentPath = (path: string) => location.pathname.startsWith(path);
@@ -58,11 +84,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     to={item.href}
                     className={`${
                       isActive
-                        ? 'bg-[#0070BA] text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-[#0070BA] text-white shadow-md hover:bg-white hover:text-[#0070BA]'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                     } group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all`}
                   >
-                    <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                    <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white group-hover:text-[#0070BA]' : 'text-gray-500 group-hover:text-gray-700'}`} />
                     {item.name}
                   </Link>
                 );
@@ -70,25 +96,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
           </div>
 
-          {/* User info */}
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-            <div className="flex-shrink-0 group block w-full">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-semibold text-sm">
-                    {state.user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="ml-3 flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {state.user?.name}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {state.user?.email}
-                  </p>
-                </div>
+          {/* User menu */}
+          <div className="flex-shrink-0 border-t border-gray-200 p-4 relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-sm">
+                  {state.user?.name?.charAt(0).toUpperCase()}
+                </span>
               </div>
-            </div>
+              <div className="ml-3 flex-1 min-w-0 text-left">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {state.user?.name}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {state.user?.email}
+                </p>
+              </div>
+              <ChevronUp className={`h-4 w-4 text-gray-500 transition-transform ${userMenuOpen ? '' : 'rotate-180'}`} />
+            </button>
+
+            {/* Popup menu */}
+            {userMenuOpen && (
+              <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                <button
+                  onClick={handleOpenSettings}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Settings className="h-4 w-4 mr-3" />
+                  Settings
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <LogOut className="h-4 w-4 mr-3" />
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -138,12 +186,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         to={item.href}
                         className={`${
                           isActive
-                            ? 'bg-[#0070BA] text-white shadow-md'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            ? 'bg-[#0070BA] text-white shadow-md hover:bg-white hover:text-[#0070BA]'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                         } group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-all`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <Icon className={`mr-4 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                        <Icon className={`mr-4 h-6 w-6 ${isActive ? 'text-white group-hover:text-[#0070BA]' : 'text-gray-500 group-hover:text-gray-700'}`} />
                         {item.name}
                       </Link>
                     );
@@ -185,22 +233,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col flex-1">
-        <div className="hidden lg:flex lg:items-center lg:justify-end lg:h-16 lg:bg-white lg:border-b lg:border-gray-200 lg:px-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="flex items-center text-gray-700 hover:text-[#0070BA] hover:bg-gray-100"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign out
-          </Button>
-        </div>
-
         <main className="flex-1">
           {children}
         </main>
       </div>
+
+      {/* Settings Dialog */}
+      <SettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 };

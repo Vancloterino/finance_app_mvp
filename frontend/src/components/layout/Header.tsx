@@ -53,7 +53,7 @@ const Header: React.FC = () => {
             {state.isAuthenticated ? (
               <Button
                 onClick={() => navigate('/spaces')}
-                className="bg-[#0070BA] hover:bg-[#005a94] text-white"
+                className="!bg-[#0070BA] hover:!bg-[#005a94] !text-white font-semibold"
               >
                 Go to Dashboard
               </Button>
@@ -68,7 +68,7 @@ const Header: React.FC = () => {
                 </Button>
                 <Button
                   onClick={() => navigate('/register')}
-                  className="bg-[#0070BA] hover:bg-[#005a94] text-white"
+                  className="!bg-[#0070BA] hover:!bg-[#005a94] !text-white font-semibold"
                 >
                   Sign Up
                 </Button>
@@ -113,7 +113,7 @@ const Header: React.FC = () => {
                       navigate('/spaces');
                       setMobileMenuOpen(false);
                     }}
-                    className="bg-[#0070BA] hover:bg-[#005a94] text-white"
+                    className="!bg-[#0070BA] hover:!bg-[#005a94] !text-white font-semibold"
                   >
                     Go to Dashboard
                   </Button>
@@ -136,7 +136,7 @@ const Header: React.FC = () => {
                         navigate('/register');
                         setMobileMenuOpen(false);
                       }}
-                      className="bg-[#0070BA] hover:bg-[#005a94] text-white"
+                      className="!bg-[#0070BA] hover:!bg-[#005a94] !text-white font-semibold"
                     >
                       Sign Up
                     </Button>

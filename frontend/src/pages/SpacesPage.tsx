@@ -1,16 +1,53 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
 import SearchInput from '../components/ui/SearchInput';
 import CreateSpaceModal from '../components/spaces/CreateSpaceModal';
-import { Plus, Users, DollarSign } from 'lucide-react';
+import TransferDialog from '../components/spaces/TransferDialog';
+import { Plus, Users, DollarSign, Wallet, ArrowRightLeft, TrendingUp, TrendingDown } from 'lucide-react';
+import { usersApi } from '../api/services';
+import { BalanceSummary } from '../types';
 
 const SpacesPage: React.FC = () => {
   const { state } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [totalBalance, setTotalBalance] = useState<number | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+
+  // Calculate total balance across all spaces
+  useEffect(() => {
+    const loadTotalBalance = async () => {
+      if (!state.user || state.spaces.length === 0) {
+        setTotalBalance(0);
+        return;
+      }
+
+      setLoadingBalance(true);
+      try {
+        const balancePromises = state.spaces.map((space) =>
+          usersApi.getUserBalance(state.user!.id, space.id)
+        );
+        const balances = await Promise.all(balancePromises);
+        // net_balance is a number (already in dollars), not in minor units
+        const total = balances.reduce((sum, balance) => {
+          const balanceValue = typeof balance.net_balance === 'number' ? balance.net_balance : 0;
+          return sum + balanceValue;
+        }, 0);
+        setTotalBalance(total);
+      } catch (err) {
+        console.error('Failed to load total balance:', err);
+        setTotalBalance(0);
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+
+    loadTotalBalance();
+  }, [state.user, state.spaces]);
 
   // Filter spaces based on search query
   const filteredSpaces = useMemo(() => {
@@ -33,6 +70,13 @@ const SpacesPage: React.FC = () => {
     );
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -48,6 +92,64 @@ const SpacesPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Total Balance and Transfer Section */}
+      {state.spaces.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Total Balance Card */}
+          <div className="bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-xl shadow-md p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="bg-white bg-opacity-20 rounded-lg p-3 mr-3">
+                  <Wallet className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold">Total Balance</h3>
+              </div>
+              {totalBalance !== null && totalBalance > 0 && (
+                <TrendingUp className="h-5 w-5 opacity-80" />
+              )}
+              {totalBalance !== null && totalBalance < 0 && (
+                <TrendingDown className="h-5 w-5 opacity-80" />
+              )}
+            </div>
+            {loadingBalance ? (
+              <div className="flex items-center justify-center py-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : (
+              <>
+                <p className="text-4xl font-bold mb-2">
+                  {totalBalance !== null ? formatCurrency(totalBalance) : '$0.00'}
+                </p>
+                <p className="text-sm opacity-90">
+                  Across {state.spaces.length} space{state.spaces.length !== 1 ? 's' : ''}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Transfer Between Spaces Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center mb-4">
+              <div className="bg-[#E8F4FD] rounded-lg p-3 mr-3">
+                <ArrowRightLeft className="h-6 w-6 text-[#0070BA]" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">Transfer Funds</h3>
+                <p className="text-sm text-gray-600">Move money between your spaces</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowTransferDialog(true)}
+              fullWidth
+              disabled={state.spaces.length < 2}
+            >
+              <ArrowRightLeft className="h-4 w-4 mr-2" />
+              {state.spaces.length < 2 ? 'Need 2+ spaces' : 'Transfer Between Spaces'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {state.spaces.length > 0 && (
         <div className="mb-6">
@@ -123,6 +225,13 @@ const SpacesPage: React.FC = () => {
       <CreateSpaceModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+      />
+
+      {/* Transfer Dialog */}
+      <TransferDialog
+        isOpen={showTransferDialog}
+        onClose={() => setShowTransferDialog(false)}
+        spaces={state.spaces}
       />
     </div>
   );
