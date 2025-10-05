@@ -197,9 +197,51 @@ def invite_member(
             detail="Only space admins can invite members"
         )
 
-    # For now, just return success without sending email (email server not configured)
-    # In production, this would create an invitation link and send the actual email
-    return {"message": f"Invitation sent to {email}"}
+    # Check if user with this email exists
+    invited_user = UserService.get_user_by_email(db, email)
+
+    if not invited_user:
+        # User doesn't exist - they need to register first
+        return {
+            "message": f"User with email {email} needs to register first. Share the app link with them!",
+            "user_exists": False,
+            "email": email
+        }
+
+    # Check if user is already a member
+    if SpaceService.is_space_member(db, space_id, invited_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User {email} is already a member of this space"
+        )
+
+    # Add user to space with default allocation of 0%
+    from app.schemas.space import MemberAllocationCreate
+    member_data = MemberAllocationCreate(
+        user_id=invited_user.id,
+        allocation_pct=0.0  # Admin can update this later
+    )
+
+    allocation = SpaceService.add_member(db, space_id, member_data)
+    if not allocation:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to add member to space"
+        )
+
+    # In production, send email notification here
+    # NotificationService.send_space_invitation(invited_user.email, space.name, current_user.name)
+
+    return {
+        "message": f"Successfully added {email} to space '{space.name}'",
+        "user_exists": True,
+        "email": email,
+        "user_id": str(invited_user.id),
+        "allocation": {
+            "user_id": str(allocation.user_id),
+            "allocation_pct": allocation.allocation_pct
+        }
+    }
 
 
 @router.delete("/{space_id}", status_code=status.HTTP_204_NO_CONTENT)

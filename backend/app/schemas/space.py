@@ -68,6 +68,16 @@ class MemberAllocationUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class MemberUser(BaseModel):
+    """User information for member allocation"""
+    id: UUID
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
 class MemberAllocation(MemberAllocationBase):
     id: UUID
     space_id: UUID
@@ -75,6 +85,7 @@ class MemberAllocation(MemberAllocationBase):
     is_active: bool = True
     created_at: datetime
     updated_at: Optional[datetime] = None
+    user: Optional[MemberUser] = None
 
     class Config:
         from_attributes = True

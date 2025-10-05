@@ -51,6 +51,12 @@ const SpaceSettingsPage: React.FC = () => {
       const result = await spacesApi.inviteMember(spaceId, inviteEmail.trim());
       setInviteSuccess(result.message);
       setInviteEmail('');
+
+      // If user was successfully added, refresh the space data to show new member
+      if (result.user_exists) {
+        const updatedSpace = await spacesApi.getSpace(spaceId);
+        setSpace(updatedSpace);
+      }
     } catch (err: any) {
       setInviteError(err.message || 'Failed to send invitation');
     } finally {
@@ -194,8 +200,11 @@ const SpaceSettingsPage: React.FC = () => {
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Member #{member.user_id.slice(0, 8)}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {member.user?.name || `User #${member.user_id.slice(0, 8)}`}
+                  </p>
                   <p className="text-xs text-gray-500">
+                    {member.user?.email && `${member.user.email} • `}
                     Allocation: {(parseFloat(member.allocation_pct) * 100).toFixed(1)}% •
                     Role: {member.role} •
                     Joined: {new Date(member.created_at).toLocaleDateString()}

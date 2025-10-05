@@ -45,6 +45,12 @@ export interface SpaceUpdate {
   is_active?: boolean;
 }
 
+export interface MemberUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface MemberAllocation {
   id: string;
   space_id: string;
@@ -54,6 +60,7 @@ export interface MemberAllocation {
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+  user?: MemberUser;
 }
 
 export interface SpaceWithMembers extends Space {

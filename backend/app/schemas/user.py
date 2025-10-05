@@ -39,3 +39,17 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class UserSpace(BaseModel):
+    """Schema for user's space membership"""
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    allocation_pct: float
+    is_admin: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
