@@ -131,3 +131,82 @@ class UserService:
         db_user.password_hash = get_password_hash(new_password)
         db.commit()
         return True
+
+    @staticmethod
+    def get_user_spaces(db: Session, user_id: UUID):
+        """Get all spaces a user is member of"""
+        from app.models.space import MemberAllocation
+        from sqlalchemy import and_
+
+        allocations = db.query(MemberAllocation).filter(
+            and_(
+                MemberAllocation.user_id == user_id,
+                MemberAllocation.is_active == True
+            )
+        ).all()
+
+        # Return list of spaces with user's role and allocation
+        return [
+            {
+                "space_id": alloc.space_id,
+                "space_name": alloc.space.name if alloc.space else None,
+                "role": alloc.role,
+                "allocation_pct": float(alloc.allocation_pct),
+                "is_active": alloc.is_active
+            }
+            for alloc in allocations
+        ]
+
+    @staticmethod
+    def get_user_total_balance(db: Session, user_id: UUID, currency: str = "USD") -> int:
+        """Calculate user's total balance across all spaces"""
+        from app.models.ledger import LedgerEntry
+        from sqlalchemy import func, and_
+
+        # Sum all credits
+        credits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "CREDIT"
+            )
+        ).scalar() or 0
+
+        # Sum all debits
+        debits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "DEBIT"
+            )
+        ).scalar() or 0
+
+        return int(credits - debits)
+
+    @staticmethod
+    def get_user_ledger(db: Session, user_id: UUID, currency: str = "USD", skip: int = 0, limit: int = 100):
+        """Get user's ledger entries"""
+        from app.models.ledger import LedgerEntry
+        from sqlalchemy import and_
+
+        entries = db.query(LedgerEntry).filter(
+            and_(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.currency == currency
+            )
+        ).order_by(LedgerEntry.event_time.desc()).offset(skip).limit(limit).all()
+
+        return [
+            {
+                "id": str(entry.id),
+                "space_id": str(entry.space_id),
+                "type": entry.type,
+                "amount_minor": entry.amount_minor,
+                "currency": entry.currency,
+                "ref_type": entry.ref_type,
+                "ref_id": entry.ref_id,
+                "memo": entry.memo,
+                "event_time": entry.event_time.isoformat() if entry.event_time else None
+            }
+            for entry in entries
+        ]

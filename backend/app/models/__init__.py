@@ -3,6 +3,8 @@ from .space import Space, MemberAllocation
 from .pledge import Pledge
 from .payout import Payout, Consent
 from .ledger import LedgerEntry
+from .audit_log import AuditLog
+from .payment_intent import PaymentIntent
 
 __all__ = [
     "User",
@@ -12,4 +14,6 @@ __all__ = [
     "Payout",
     "Consent",
     "LedgerEntry",
+    "AuditLog",
+    "PaymentIntent",
 ]

@@ -7,6 +7,7 @@ from sqlalchemy import and_, or_
 from app.models.payout import Payout, Consent, PayoutStatusEnum, ConsentDecisionEnum
 from app.models.space import MemberAllocation
 from app.models.ledger import LedgerEntry
+from app.models.payment_intent import PaymentIntent, PaymentIntentStatusEnum
 from app.schemas.payout import PayoutCreate, PayoutUpdate, ConsentCreate
 from app.services.space import SpaceService
 from app.services.stripe_service import StripeService
@@ -314,6 +315,24 @@ class PayoutService:
                 description=f"Payment for: {payout.payee_name} - {payout.description}"
             )
 
+            # Create PaymentIntent records in database for tracking
+            for result in payment_results:
+                if result.get("success") and result.get("payment_intent_id"):
+                    payment_intent = PaymentIntent(
+                        payout_id=payout_id,
+                        user_id=result["user_id"],
+                        stripe_payment_intent_id=result["payment_intent_id"],
+                        amount_minor=result["amount"],
+                        currency=payout.currency,
+                        status=PaymentIntentStatusEnum.CREATED,
+                        stripe_customer_id=result.get("customer_id"),
+                        stripe_payment_method_id=result.get("payment_method_id"),
+                        client_secret=result.get("client_secret")
+                    )
+                    db.add(payment_intent)
+
+            db.commit()
+
             return {
                 "success": True,
                 "errors": [],
@@ -321,6 +340,7 @@ class PayoutService:
             }
 
         except Exception as e:
+            db.rollback()
             return {
                 "success": False,
                 "errors": [f"Stripe processing error: {str(e)}"],

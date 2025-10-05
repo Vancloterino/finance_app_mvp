@@ -58,6 +58,7 @@ class Payout(Base):
     # Relationships
     space = relationship("Space", back_populates="payouts")
     consents = relationship("Consent", back_populates="payout")
+    payment_intents = relationship("PaymentIntent", back_populates="payout")
 
 
 class Consent(Base):

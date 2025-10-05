@@ -1,7 +1,9 @@
 from typing import List, Dict
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
@@ -9,10 +11,13 @@ from app.services.stripe_service import StripeService
 from app.services.user import UserService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/setup-intent")
+@limiter.limit("10/hour")  # Rate limit: 10 payment setup intents per hour
 def create_setup_intent(
+    request: Request,
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):

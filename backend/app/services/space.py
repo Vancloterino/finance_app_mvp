@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app.models.space import Space, MemberAllocation
-from app.schemas.space import SpaceCreate, SpaceUpdate, MemberAllocationCreate
+from app.schemas.space import SpaceCreate, SpaceUpdate, MemberAllocationCreate, MemberAllocationUpdate
 
 
 class SpaceService:
@@ -151,3 +151,99 @@ class SpaceService:
             )
         ).first()
         return allocation is not None
+
+    @staticmethod
+    def delete_space(db: Session, space_id: UUID) -> bool:
+        """Delete a space (soft delete)"""
+        db_space = db.query(Space).filter(Space.id == space_id).first()
+        if not db_space:
+            return False
+
+        db_space.is_active = False
+        db.commit()
+        return True
+
+    @staticmethod
+    def update_member_allocation(
+        db: Session,
+        space_id: UUID,
+        user_id: UUID,
+        allocation_update: MemberAllocationUpdate
+    ) -> Optional[MemberAllocation]:
+        """Update member allocation percentage and/or role"""
+        db_allocation = db.query(MemberAllocation).filter(
+            and_(
+                MemberAllocation.space_id == space_id,
+                MemberAllocation.user_id == user_id,
+                MemberAllocation.is_active == True
+            )
+        ).first()
+
+        if not db_allocation:
+            return None
+
+        for field, value in allocation_update.dict(exclude_unset=True).items():
+            setattr(db_allocation, field, value)
+
+        db.commit()
+        db.refresh(db_allocation)
+        return db_allocation
+
+    @staticmethod
+    def get_space_balance(db: Session, space_id: UUID, currency: str = "USD") -> int:
+        """Calculate space balance (sum of all member balances)"""
+        from app.models.ledger import LedgerEntry
+        from sqlalchemy import func
+
+        # Sum all credits for this space
+        credits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.space_id == space_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "CREDIT"
+            )
+        ).scalar() or 0
+
+        # Sum all debits for this space
+        debits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.space_id == space_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "DEBIT"
+            )
+        ).scalar() or 0
+
+        return int(credits - debits)
+
+    @staticmethod
+    def get_space_ledger(
+        db: Session,
+        space_id: UUID,
+        currency: str = "USD",
+        skip: int = 0,
+        limit: int = 100
+    ):
+        """Get space ledger entries"""
+        from app.models.ledger import LedgerEntry
+
+        entries = db.query(LedgerEntry).filter(
+            and_(
+                LedgerEntry.space_id == space_id,
+                LedgerEntry.currency == currency
+            )
+        ).order_by(LedgerEntry.event_time.desc()).offset(skip).limit(limit).all()
+
+        return [
+            {
+                "id": str(entry.id),
+                "user_id": str(entry.user_id),
+                "type": entry.type,
+                "amount_minor": entry.amount_minor,
+                "currency": entry.currency,
+                "ref_type": entry.ref_type,
+                "ref_id": entry.ref_id,
+                "memo": entry.memo,
+                "event_time": entry.event_time.isoformat() if entry.event_time else None
+            }
+            for entry in entries
+        ]

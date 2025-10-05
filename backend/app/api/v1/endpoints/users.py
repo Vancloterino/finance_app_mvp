@@ -135,3 +135,111 @@ def change_password(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+
+
+# Admin endpoints
+@router.put("/{user_id}", response_model=user_schemas.User)
+def update_user_admin(
+    user_id: UUID,
+    user_update: user_schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Update any user (admin only) - Note: Admin check would go here in production"""
+    # TODO: Add proper admin role check
+    # For now, any authenticated user can update (not production-ready)
+
+    user = UserService.update_user(db, user_id, user_update)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    return user
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_admin(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Delete/deactivate user (admin only) - Note: Admin check would go here in production"""
+    # TODO: Add proper admin role check
+    # For now, any authenticated user can delete (not production-ready)
+
+    # Prevent self-deletion
+    if user_id == current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account via admin endpoint"
+        )
+
+    success = UserService.deactivate_user(db, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+
+@router.get("/{user_id}/spaces", response_model=list[user_schemas.UserSpace])
+def get_user_spaces(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get all spaces for a user"""
+    # Users can only view their own spaces unless admin
+    if user_id != current_user_id:
+        # TODO: Add admin role check here
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only view your own spaces"
+        )
+
+    spaces = UserService.get_user_spaces(db, user_id)
+    return spaces
+
+
+@router.get("/{user_id}/balance")
+def get_user_balance(
+    user_id: UUID,
+    currency: str = "USD",
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get user's total balance across all spaces"""
+    # Users can only view their own balance unless admin
+    if user_id != current_user_id:
+        # TODO: Add admin role check here
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only view your own balance"
+        )
+
+    balance = UserService.get_user_total_balance(db, user_id, currency)
+    return {"user_id": user_id, "currency": currency, "balance": balance}
+
+
+@router.get("/{user_id}/ledger")
+def get_user_ledger(
+    user_id: UUID,
+    currency: str = "USD",
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get user's ledger entries across all spaces"""
+    # Users can only view their own ledger unless admin
+    if user_id != current_user_id:
+        # TODO: Add admin role check here
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only view your own ledger"
+        )
+
+    entries = UserService.get_user_ledger(db, user_id, currency, skip, limit)
+    return {"user_id": user_id, "currency": currency, "entries": entries}

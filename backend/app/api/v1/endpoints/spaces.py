@@ -200,3 +200,91 @@ def invite_member(
     # For now, just return success without sending email (email server not configured)
     # In production, this would create an invitation link and send the actual email
     return {"message": f"Invitation sent to {email}"}
+
+
+@router.delete("/{space_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_space(
+    space_id: UUID,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Delete a space (admin only)"""
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can delete spaces"
+        )
+
+    success = SpaceService.delete_space(db, space_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Space not found"
+        )
+
+
+@router.put("/{space_id}/members/{member_user_id}")
+def update_member_allocation(
+    space_id: UUID,
+    member_user_id: UUID,
+    allocation_update: space_schemas.MemberAllocationUpdate,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Update member allocation (admin only)"""
+    # Verify user is admin of the space
+    if not SpaceService.is_space_admin(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only space admins can update member allocations"
+        )
+
+    allocation = SpaceService.update_member_allocation(db, space_id, member_user_id, allocation_update)
+    if not allocation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found in this space"
+        )
+
+    return allocation
+
+
+@router.get("/{space_id}/balance")
+def get_space_balance(
+    space_id: UUID,
+    currency: str = "USD",
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get space balance"""
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
+
+    balance = SpaceService.get_space_balance(db, space_id, currency)
+    return {"space_id": space_id, "currency": currency, "balance": balance}
+
+
+@router.get("/{space_id}/ledger")
+def get_space_ledger(
+    space_id: UUID,
+    currency: str = "USD",
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """Get space ledger entries"""
+    # Verify user is member of the space
+    if not SpaceService.is_space_member(db, space_id, current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this space"
+        )
+
+    entries = SpaceService.get_space_ledger(db, space_id, currency, skip, limit)
+    return {"space_id": space_id, "currency": currency, "entries": entries}

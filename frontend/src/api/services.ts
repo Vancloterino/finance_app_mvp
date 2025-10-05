@@ -81,7 +81,7 @@ export const spacesApi = {
     api.post('/spaces', spaceData),
 
   updateSpace: (spaceId: string, spaceData: SpaceUpdate): Promise<Space> =>
-    api.put(`/spaces/${spaceId}`, spaceData),
+    api.patch(`/spaces/${spaceId}`, spaceData),
 
   deleteSpace: (spaceId: string): Promise<void> =>
     api.delete(`/spaces/${spaceId}`),

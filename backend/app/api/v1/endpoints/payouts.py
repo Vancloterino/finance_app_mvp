@@ -2,6 +2,8 @@ from typing import List, Dict
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
@@ -12,9 +14,11 @@ from app.services.audit import AuditService
 from app.services.user import UserService
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/", response_model=payout_schemas.Payout, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")  # Rate limit: 10 payout creations per minute
 def create_payout(
     payout: payout_schemas.PayoutCreate,
     request: Request,
@@ -98,6 +102,7 @@ def get_payout(
 
 
 @router.post("/{payout_id}/consent", response_model=payout_schemas.Consent, status_code=status.HTTP_201_CREATED)
+@limiter.limit("20/minute")  # Rate limit: 20 consent submissions per minute
 def submit_consent(
     payout_id: UUID,
     consent: payout_schemas.ConsentCreate,
@@ -211,6 +216,7 @@ def get_consent_summary(
 
 
 @router.post("/{payout_id}/execute", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")  # Rate limit: 5 payout executions per minute (strict limit for financial operations)
 def execute_payout(
     payout_id: UUID,
     request: Request,
