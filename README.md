@@ -21,7 +21,7 @@ A comprehensive platform for managing shared financial responsibilities with tra
 - **Python 3.11+** (for backend development)
 - **Poetry** (for Python dependency management)
 
-### 🐳 Easy Setup (Recommended)
+### 🐳 Easy Setup (Recommended - Full Docker Stack)
 
 **1. Clone the repository:**
 ```bash
@@ -29,41 +29,57 @@ git clone <repo-url>
 cd finance_app_mvp
 ```
 
-**2. Start the database services:**
+**2. Start all services with Docker:**
 ```bash
-# Start PostgreSQL and Redis containers
+# Build and start all services (postgres, redis, backend, frontend)
+docker-compose build
 docker-compose up -d
 
-# Wait for containers to be healthy (about 30 seconds)
-docker ps
+# Wait for services to be ready (about 30 seconds)
+docker-compose ps
 ```
 
-**3. Set up the backend:**
+**3. Run database migrations:**
+```bash
+# Apply database migrations
+docker-compose exec backend poetry run alembic upgrade head
+```
+
+**4. Access the application:**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+**Important Notes:**
+- Backend has hot-reload enabled (code changes reflect automatically)
+- Frontend requires image rebuild for code changes: `docker-compose build frontend && docker-compose up -d frontend`
+
+### 🔧 Alternative Setup (Local Development)
+
+If you prefer running backend/frontend locally (faster for development):
+
+**1. Start only databases:**
+```bash
+# Use the db-only compose file
+docker-compose -f docker-compose.db-only.yml up -d
+```
+
+**2. Set up the backend (Terminal 1):**
 ```bash
 cd backend
-
-# Install dependencies
 poetry install
-
-# Apply database migrations
 poetry run alembic upgrade head
-
-# Start the backend server
 poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**4. Set up the frontend (in a new terminal):**
+**3. Set up the frontend (Terminal 2):**
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-**5. Access the application:**
+**4. Access the application:**
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
@@ -215,10 +231,23 @@ curl -X POST "http://localhost:8000/api/v1/auth/register" \
 
 ## 🛠️ Development Workflow
 
-### Daily Development
+### Daily Development (Full Docker Stack)
 ```bash
-# Start databases (if not running)
+# Start all services
 docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Stop all services
+docker-compose down
+```
+
+### Daily Development (Local Development)
+```bash
+# Start databases only
+docker-compose -f docker-compose.db-only.yml up -d
 
 # Start backend (in terminal 1)
 cd backend
@@ -227,26 +256,38 @@ poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Start frontend (in terminal 2)
 cd frontend
 npm run dev
+
+# Stop databases
+docker-compose -f docker-compose.db-only.yml down
 ```
 
 ### Making Database Changes
 ```bash
+# If using Docker:
+docker-compose exec backend poetry run alembic revision --autogenerate -m "description"
+docker-compose exec backend poetry run alembic upgrade head
+
+# If running locally:
 cd backend
-
-# Create new migration
 poetry run alembic revision --autogenerate -m "description of changes"
-
-# Apply migrations
 poetry run alembic upgrade head
 ```
 
-### Stopping Services
-```bash
-# Stop frontend/backend: Ctrl+C in their terminals
+### Making Code Changes
 
-# Stop database containers
-docker-compose down
+**Backend Changes (with Docker):**
+- Changes automatically reload (hot-reload enabled)
+- No rebuild needed
+
+**Frontend Changes (with Docker):**
+```bash
+# Rebuild frontend image after code changes
+docker-compose build frontend
+docker-compose up -d frontend
 ```
+
+**Local Development:**
+- Both backend and frontend auto-reload on save
 
 ## 📁 Project Structure
 
@@ -285,42 +326,101 @@ finance_app_mvp/
 # Ensure Docker Desktop is running
 docker ps
 
-# Restart database containers
+# Restart containers
 docker-compose down
 docker-compose up -d
 ```
 
-#### "bcrypt" version errors:
+#### Backend not starting:
 ```bash
-cd backend
-poetry add "bcrypt>=4.0.0,<5.0.0"
-# Restart backend server
+# Check backend logs
+docker-compose logs backend
+
+# Common fix: rebuild backend image
+docker-compose build backend
+docker-compose up -d backend
 ```
 
-#### Frontend not loading:
+#### Frontend not starting or "rollup" errors:
 ```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-npm run dev
+# Rebuild frontend image (fixes module issues)
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
+
+# Check logs
+docker-compose logs frontend
 ```
 
 #### Database migration issues:
 ```bash
-cd backend
-# Reset database
+# Reset database completely
 docker-compose down -v
-docker-compose up -d
+docker-compose up -d postgres redis
+
+# Wait for database to be ready
 sleep 15
-poetry run alembic upgrade head
+
+# Run migrations
+docker-compose exec backend poetry run alembic upgrade head
+```
+
+#### Services not showing in `docker-compose ps`:
+```bash
+# Service crashed - check logs
+docker-compose logs <service-name>
+
+# Common fix: rebuild and restart
+docker-compose build <service-name>
+docker-compose up -d <service-name>
+```
+
+#### "Port already in use" errors:
+```bash
+# Check what's using the ports
+# On Windows:
+netstat -ano | findstr :3000
+netstat -ano | findstr :8000
+
+# Stop conflicting services or change ports in docker-compose.yml
+```
+
+### Useful Docker Commands
+
+```bash
+# View all container logs
+docker-compose logs
+
+# Follow logs in real-time
+docker-compose logs -f
+
+# View logs for specific service
+docker-compose logs backend
+docker-compose logs frontend
+
+# Restart specific service
+docker-compose restart backend
+
+# Rebuild specific service
+docker-compose build backend
+docker-compose up -d backend
+
+# Clean everything and start fresh
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+
+# Execute commands in containers
+docker-compose exec backend bash
+docker-compose exec frontend sh
 ```
 
 ### Getting Help
 
 - **API Documentation**: http://localhost:8000/docs
-- **Backend Logs**: Check the terminal running the backend server
-- **Frontend Logs**: Check browser developer console (F12)
-- **Database Logs**: `docker logs finance_app_postgres`
+- **Backend Logs**: `docker-compose logs backend`
+- **Frontend Logs**: `docker-compose logs frontend` or browser console (F12)
+- **Database Logs**: `docker-compose logs postgres`
+- **Container Status**: `docker-compose ps`
 
 ## 🎯 What You Can Do
 

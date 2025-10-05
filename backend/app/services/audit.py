@@ -63,7 +63,7 @@ class AuditService:
             description=description,
             old_values=old_values,
             new_values=new_values,
-            metadata=metadata,
+            extra_metadata=metadata,
             amount=amount,
             currency=currency,
             ip_address=ip_address,

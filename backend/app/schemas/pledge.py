@@ -14,6 +14,12 @@ class PledgeCreate(PledgeBase):
     space_id: UUID
 
 
+class PledgeUpdate(BaseModel):
+    amount_minor: Optional[int] = Field(None, gt=0, description="Amount in minor units (cents)")
+    currency: Optional[str] = Field(None, max_length=3, description="ISO 4217 currency code")
+    memo: Optional[str] = None
+
+
 class Pledge(PledgeBase):
     id: UUID
     space_id: UUID

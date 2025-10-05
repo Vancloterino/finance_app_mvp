@@ -72,7 +72,7 @@ class AuditLog(Base):
     description = Column(Text)  # Human-readable description
     old_values = Column(JSON)  # Previous state (for updates)
     new_values = Column(JSON)  # New state
-    metadata = Column(JSON)  # Additional context (e.g., space_id, payout_id)
+    extra_metadata = Column("metadata", JSON)  # Additional context (e.g., space_id, payout_id)
 
     # Financial tracking
     amount = Column(String(20))  # Amount involved (if applicable)
