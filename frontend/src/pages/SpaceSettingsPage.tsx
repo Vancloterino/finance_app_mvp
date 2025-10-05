@@ -21,6 +21,11 @@ const SpaceSettingsPage: React.FC = () => {
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Allocation editing state
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editAllocation, setEditAllocation] = useState<string>('');
+  const [allocationLoading, setAllocationLoading] = useState(false);
+
   useEffect(() => {
     if (!spaceId) return;
 
@@ -61,6 +66,43 @@ const SpaceSettingsPage: React.FC = () => {
       setInviteError(err.message || 'Failed to send invitation');
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handleStartEdit = (member: MemberAllocation) => {
+    setEditingMemberId(member.id);
+    setEditAllocation((parseFloat(member.allocation_pct.toString()) * 100).toString());
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMemberId(null);
+    setEditAllocation('');
+  };
+
+  const handleSaveAllocation = async (memberId: string, userId: string) => {
+    if (!spaceId) return;
+
+    try {
+      setAllocationLoading(true);
+      const allocationPct = parseFloat(editAllocation) / 100;
+
+      if (isNaN(allocationPct) || allocationPct < 0 || allocationPct > 1) {
+        alert('Please enter a valid allocation between 0 and 100');
+        return;
+      }
+
+      await spacesApi.updateMemberAllocation(spaceId, userId, allocationPct);
+
+      // Refresh space data
+      const updatedSpace = await spacesApi.getSpace(spaceId);
+      setSpace(updatedSpace);
+
+      setEditingMemberId(null);
+      setEditAllocation('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to update allocation');
+    } finally {
+      setAllocationLoading(false);
     }
   };
 
@@ -199,18 +241,60 @@ const SpaceSettingsPage: React.FC = () => {
                 key={member.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
               >
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
                     {member.user?.name || `User #${member.user_id.slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-gray-500">
                     {member.user?.email && `${member.user.email} • `}
-                    Allocation: {(parseFloat(member.allocation_pct) * 100).toFixed(1)}% •
+                    {editingMemberId === member.id ? (
+                      <span className="inline-flex items-center space-x-2">
+                        <input
+                          type="number"
+                          value={editAllocation}
+                          onChange={(e) => setEditAllocation(e.target.value)}
+                          className="w-20 px-2 py-1 text-xs border rounded"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          disabled={allocationLoading}
+                        />
+                        <span>%</span>
+                      </span>
+                    ) : (
+                      <span>Allocation: {(parseFloat(member.allocation_pct.toString()) * 100).toFixed(1)}%</span>
+                    )}
+                    {' • '}
                     Role: {member.role} •
                     Joined: {new Date(member.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
+                  {editingMemberId === member.id ? (
+                    <>
+                      <button
+                        onClick={() => handleSaveAllocation(member.id, member.user_id)}
+                        disabled={allocationLoading}
+                        className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={allocationLoading}
+                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleStartEdit(member)}
+                      className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                    >
+                      Edit
+                    </button>
+                  )}
                   {member.role === 'admin' && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       Admin

@@ -4,7 +4,7 @@ import { ApiError } from '../types';
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
-  timeout: 10000,
+  timeout: 30000, // 30 seconds - increased for operations like payouts that send notifications
   headers: {
     'Content-Type': 'application/json',
   },

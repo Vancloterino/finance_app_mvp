@@ -70,6 +70,12 @@ export interface SpaceWithMembers extends Space {
 }
 
 // Pledge types
+export interface PledgeUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface Pledge {
   id: string;
   space_id: string;
@@ -80,6 +86,7 @@ export interface Pledge {
   due_date?: string;
   created_at: string;
   updated_at: string;
+  user?: PledgeUser;
 }
 
 export interface PledgeCreate {
@@ -138,23 +145,26 @@ export interface ConsentCreate {
 }
 
 export interface ConsentSummary {
-  payout_id: string;
-  total_members: number;
+  payout_id?: string;
+  payout_amount_minor?: number;
+  payout_amount?: number;
+  payee_name?: string;
+  status?: string;
+  consent_deadline?: string;
   total_allocation: number;
-  consent_counts: {
-    approved: number;
-    denied: number;
-    pending: number;
-    auto_approved: number;
-  };
-  consent_allocations: {
-    approved: number;
-    denied: number;
-    pending: number;
-    auto_approved: number;
-  };
+  approved_allocation: number;
+  denied_allocation: number;
+  pending_allocation: number;
+  auto_approved_allocation: number;
   quorum_needed: number;
   ready_for_execution: boolean;
+  consents?: Array<{
+    user_id: string;
+    allocation_pct: number;
+    decision: string;
+    decided_at?: string;
+    reason?: string;
+  }>;
 }
 
 // Ledger types

@@ -64,7 +64,7 @@ const PledgeList: React.FC<PledgeListProps> = ({
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center space-x-1">
               <User className="h-3 w-3" />
-              <span>User {pledge.user_id.slice(0, 8)}...</span>
+              <span>{pledge.user?.name || `User ${pledge.user_id.slice(0, 8)}...`}</span>
             </div>
             <span>Created {formatDate(pledge.created_at)}</span>
           </div>

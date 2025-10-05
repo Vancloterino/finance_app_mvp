@@ -155,7 +155,7 @@ const PayoutDetailModal: React.FC<PayoutDetailModalProps> = ({
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-900">Approval Progress</h3>
               <span className="text-sm text-gray-600">
-                {((consentSummary.consent_allocations.approved / consentSummary.total_allocation) * 100).toFixed(1)}% approved
+                {((consentSummary.approved_allocation / consentSummary.total_allocation) * 100).toFixed(1)}% approved
               </span>
             </div>
 
@@ -164,7 +164,7 @@ const PayoutDetailModal: React.FC<PayoutDetailModalProps> = ({
               <div
                 className="bg-green-500 h-3 rounded-full transition-all duration-300"
                 style={{
-                  width: `${Math.min(100, (consentSummary.consent_allocations.approved / consentSummary.total_allocation) * 100)}%`
+                  width: `${Math.min(100, (consentSummary.approved_allocation / consentSummary.total_allocation) * 100)}%`
                 }}
               />
             </div>
@@ -175,13 +175,13 @@ const PayoutDetailModal: React.FC<PayoutDetailModalProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Approved:</span>
                   <span className="font-medium text-green-600">
-                    {consentSummary.consent_counts.approved} members
+                    {consentSummary.consents?.filter((c: any) => c.decision === 'APPROVE').length || 0} members
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Denied:</span>
                   <span className="font-medium text-red-600">
-                    {consentSummary.consent_counts.denied} members
+                    {consentSummary.consents?.filter((c: any) => c.decision === 'DENY').length || 0} members
                   </span>
                 </div>
               </div>
@@ -189,7 +189,7 @@ const PayoutDetailModal: React.FC<PayoutDetailModalProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-600">Pending:</span>
                   <span className="font-medium text-yellow-600">
-                    {consentSummary.consent_counts.pending} members
+                    {consentSummary.consents?.filter((c: any) => c.decision === 'PENDING').length || 0} members
                   </span>
                 </div>
                 <div className="flex justify-between">

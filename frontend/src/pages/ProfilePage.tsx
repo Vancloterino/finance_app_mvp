@@ -76,10 +76,14 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Account Settings</h1>
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Settings</h1>
+        <p className="text-gray-600">Manage your profile and account preferences</p>
+      </div>
 
       {/* Profile Information */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
             <User className="h-5 w-5 mr-2" />
@@ -149,7 +153,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Lock className="h-5 w-5 mr-2" />
           Change Password
@@ -200,7 +204,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Account Information */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Mail className="h-5 w-5 mr-2" />
           Account Information

@@ -27,7 +27,8 @@ import CreatePayoutModal from '../components/payouts/CreatePayoutModal';
 import PayoutDetailModal from '../components/payouts/PayoutDetailModal';
 import ConsentModal from '../components/payouts/ConsentModal';
 import PaymentHistory from '../components/payments/PaymentHistory';
-import { ArrowLeft, Users, DollarSign, Settings, Plus, CreditCard, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Users, DollarSign, Settings, Plus, CreditCard, AlertTriangle, TrendingUp, TrendingDown, Minus, Send, BarChart3 } from 'lucide-react';
+import Avatar from '../components/ui/Avatar';
 
 const SpaceDetailPage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
@@ -214,7 +215,8 @@ const SpaceDetailPage: React.FC = () => {
   const handleSubmitConsent = async (payoutId: string, consent: ConsentCreate) => {
     try {
       await payoutsApi.submitConsent(payoutId, consent);
-      toast.success(`Your ${consent.approved ? 'approval' : 'rejection'} has been recorded.`);
+      const isApproval = consent.decision === 'approve' || consent.decision === 'auto_approve';
+      toast.success(`Your ${isApproval ? 'approval' : 'rejection'} has been recorded.`);
       // Reload consent data
       if (selectedPayout) {
         const [summary, consentList] = await Promise.all([
@@ -366,6 +368,131 @@ const SpaceDetailPage: React.FC = () => {
         </Button>
       </div>
 
+      {/* Quick Actions Bar */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => setIsCreatePledgeModalOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Pledge
+          </Button>
+          <Button
+            onClick={() => setIsCreatePayoutModalOpen(true)}
+            disabled={!isCurrentUserAdmin}
+            variant="secondary"
+            className="flex-1 sm:flex-none"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Propose Payout
+          </Button>
+          <Button
+            onClick={() => navigate(`/spaces/${spaceId}/settings`)}
+            variant="secondary"
+            className="flex-1 sm:flex-none"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+        </div>
+      </div>
+
+      {/* Financial Health Indicators */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-100 p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+            Financial Overview
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Pool */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Total Pool</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {(() => {
+                const total = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
+                return new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: space.currency
+                }).format(total / 100);
+              })()}
+            </p>
+          </div>
+
+          {/* Your Balance */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Your Balance</p>
+            {(() => {
+              const userPledges = pledges.filter(p => p.user_id === state.user?.id);
+              const userTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
+              const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
+              const userMember = space.members.find(m => m.user_id === state.user?.id);
+              const allocatedAmount = userMember
+                ? totalPledges * parseFloat(userMember.allocation_pct.toString())
+                : 0;
+              const balance = userTotal - allocatedAmount;
+              const isPositive = balance >= 0;
+              const BalanceIcon = isPositive ? TrendingUp : TrendingDown;
+
+              return (
+                <div className="flex items-center space-x-2">
+                  <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {isPositive ? '+' : ''}
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: space.currency
+                    }).format(balance / 100)}
+                  </p>
+                  <BalanceIcon className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Pending Payouts */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Pending Payouts</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {payouts.filter(p => p.status === 'CONSENT_PENDING' || p.status === 'READY').length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {(() => {
+                const pending = payouts.filter(p => p.status === 'CONSENT_PENDING' || p.status === 'READY');
+                const total = pending.reduce((sum, p) => sum + p.amount_minor, 0);
+                return new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: space.currency
+                }).format(total / 100);
+              })()}
+            </p>
+          </div>
+
+          {/* Members Active */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Active Members</p>
+            <div className="flex items-center space-x-2">
+              <div className="flex -space-x-2">
+                {space.members.slice(0, 4).map((member, idx) => (
+                  <Avatar
+                    key={member.id}
+                    name={member.user?.name || `User ${idx + 1}`}
+                    size="sm"
+                    className="border-2 border-white"
+                  />
+                ))}
+              </div>
+              {space.members.length > 4 && (
+                <span className="text-sm font-medium text-gray-600">
+                  +{space.members.length - 4}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -373,7 +500,7 @@ const SpaceDetailPage: React.FC = () => {
             <Users className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Members</p>
-              <p className="text-2xl font-bold text-gray-900">{space.member_count}</p>
+              <p className="text-2xl font-bold text-gray-900">{space.members?.length || 0}</p>
             </div>
           </div>
         </div>
@@ -382,9 +509,28 @@ const SpaceDetailPage: React.FC = () => {
           <div className="flex items-center">
             <DollarSign className="h-8 w-8 text-green-600" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Your Share</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {space.user_allocation ? `${(space.user_allocation * 100).toFixed(1)}%` : 'N/A'}
+              <p className="text-sm font-medium text-gray-600">Your Contribution</p>
+              <div className="flex items-baseline space-x-3">
+                <p className="text-2xl font-bold text-gray-900">
+                  {(() => {
+                    const userPledges = pledges.filter(p => p.user_id === state.user?.id);
+                    const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
+                    const userTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
+                    const contributionPct = totalPledges > 0 ? (userTotal / totalPledges) * 100 : 0;
+                    return `${contributionPct.toFixed(1)}%`;
+                  })()}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {(() => {
+                    const userMember = space.members.find(m => m.user_id === state.user?.id);
+                    return userMember
+                      ? `(${(parseFloat(userMember.allocation_pct.toString()) * 100).toFixed(1)}% allocated)`
+                      : '';
+                  })()}
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                pledged vs allocated share
               </p>
             </div>
           </div>
@@ -442,7 +588,7 @@ const SpaceDetailPage: React.FC = () => {
             }`}
             onClick={() => setActiveTab('members')}
           >
-            Members ({space.member_count})
+            Members ({space.members?.length || 0})
           </button>
         </nav>
       </div>
@@ -513,22 +659,50 @@ const SpaceDetailPage: React.FC = () => {
               </Button>
             </div>
             <div className="space-y-3">
-              {space.members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">User {member.user_id.slice(0, 8)}...</p>
-                    <p className="text-sm text-gray-500">
-                      {member.is_active ? 'Active' : 'Inactive'}
-                    </p>
+              {space.members.map((member) => {
+                const memberName = member.user?.name || `User ${member.user_id.slice(0, 8)}...`;
+                const userPledges = pledges.filter(p => p.user_id === member.user_id);
+                const memberTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
+                const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
+                const allocatedAmount = totalPledges * parseFloat(member.allocation_pct.toString());
+                const balance = memberTotal - allocatedAmount;
+                const isBalanced = Math.abs(balance) < 100; // Within $1
+                const isAhead = balance > 100;
+
+                return (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Avatar name={memberName} size="md" />
+                      <div>
+                        <p className="font-medium text-gray-900">{memberName}</p>
+                        <p className="text-xs text-gray-500">
+                          {member.role === 'admin' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                              Admin
+                            </span>
+                          )}
+                          {member.is_active ? 'Active' : 'Inactive'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <p className="font-medium text-gray-900">
+                          {(parseFloat(member.allocation_pct.toString()) * 100).toFixed(1)}%
+                        </p>
+                        {isBalanced ? (
+                          <Minus className="h-4 w-4 text-gray-400" />
+                        ) : isAhead ? (
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">allocated</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">
-                      {(member.allocation_pct * 100).toFixed(1)}%
-                    </p>
-                    <p className="text-sm text-gray-500">share</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -616,29 +790,70 @@ const SpaceDetailPage: React.FC = () => {
             </Button>
           </div>
           <div className="space-y-4">
-            {space.members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-600" />
+            {space.members.map((member) => {
+              const memberName = member.user?.name || `User ${member.user_id.slice(0, 8)}...`;
+              const userPledges = pledges.filter(p => p.user_id === member.user_id);
+              const memberTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
+              const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
+              const allocatedAmount = totalPledges * parseFloat(member.allocation_pct.toString());
+              const balance = memberTotal - allocatedAmount;
+              const isBalanced = Math.abs(balance) < 100;
+              const isAhead = balance > 100;
+
+              return (
+                <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Avatar name={memberName} size="lg" />
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium text-gray-900">{memberName}</p>
+                        {member.role === 'admin' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {member.user?.email} • Joined {new Date(member.created_at).toLocaleDateString()}
+                      </p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <p className="text-xs text-gray-600">
+                          Pledged: {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: space.currency
+                          }).format(memberTotal / 100)}
+                        </p>
+                        {!isBalanced && (
+                          <span className={`text-xs font-medium ${isAhead ? 'text-green-600' : 'text-red-600'}`}>
+                            ({isAhead ? '+' : ''}{new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: space.currency
+                            }).format(balance / 100)})
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">User {member.user_id.slice(0, 8)}...</p>
-                    <p className="text-sm text-gray-500">
-                      Joined {new Date(member.joined_at).toLocaleDateString()}
+                  <div className="text-right">
+                    <div className="flex items-center justify-end space-x-2 mb-1">
+                      <p className="text-xl font-bold text-gray-900">
+                        {(parseFloat(member.allocation_pct.toString()) * 100).toFixed(1)}%
+                      </p>
+                      {isBalanced ? (
+                        <Minus className="h-5 w-5 text-gray-400" />
+                      ) : isAhead ? (
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {member.is_active ? 'Active' : 'Inactive'}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-900">
-                    {(member.allocation_pct * 100).toFixed(1)}%
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {member.is_active ? 'Active' : 'Inactive'}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

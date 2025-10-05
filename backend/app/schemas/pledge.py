@@ -20,11 +20,22 @@ class PledgeUpdate(BaseModel):
     memo: Optional[str] = None
 
 
+class PledgeUser(BaseModel):
+    """User information for pledge"""
+    id: UUID
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
 class Pledge(PledgeBase):
     id: UUID
     space_id: UUID
     user_id: UUID
     created_at: datetime
+    user: Optional[PledgeUser] = None
 
     class Config:
         from_attributes = True

@@ -29,38 +29,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const isCurrentPath = (path: string) => location.pathname.startsWith(path);
 
+  // Non-authenticated users don't need the layout wrapper
+  // The Header is now included directly in individual pages
   if (!state.isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
-    );
+    return <>{children}</>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-xl font-bold text-gray-900">Finance App</h1>
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto shadow-sm">
+          <div className="flex items-center flex-shrink-0 px-4 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-xl flex items-center justify-center mr-3">
+              <span className="text-white font-bold text-xl">F</span>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">FinanceApp</h1>
           </div>
 
           <div className="mt-5 flex-grow flex flex-col">
-            <nav className="flex-1 px-2 space-y-1">
+            <nav className="flex-1 px-3 space-y-2">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isActive = isCurrentPath(item.href);
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
                     className={`${
-                      isCurrentPath(item.href)
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    } group flex items-center px-2 py-2 text-sm font-medium border-l-4 transition-colors`}
+                      isActive
+                        ? 'bg-[#0070BA] text-white shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all`}
                   >
-                    <Icon className="mr-3 h-5 w-5" />
+                    <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                     {item.name}
                   </Link>
                 );
@@ -70,13 +72,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* User info */}
           <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-            <div className="flex-shrink-0 group block">
+            <div className="flex-shrink-0 group block w-full">
               <div className="flex items-center">
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-semibold text-sm">
+                    {state.user?.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="ml-3 flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
                     {state.user?.name}
                   </p>
-                  <p className="text-xs font-medium text-gray-500">
+                  <p className="text-xs text-gray-500 truncate">
                     {state.user?.email}
                   </p>
                 </div>
@@ -116,21 +123,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
 
               <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-                <nav className="mt-5 px-2 space-y-1">
+                <div className="px-4 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">F</span>
+                  </div>
+                </div>
+                <nav className="mt-5 px-3 space-y-2">
                   {navigation.map((item) => {
                     const Icon = item.icon;
+                    const isActive = isCurrentPath(item.href);
                     return (
                       <Link
                         key={item.name}
                         to={item.href}
                         className={`${
-                          isCurrentPath(item.href)
-                            ? 'bg-blue-50 border-blue-500 text-blue-700'
-                            : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        } group flex items-center px-2 py-2 text-base font-medium border-l-4`}
+                          isActive
+                            ? 'bg-[#0070BA] text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        } group flex items-center px-3 py-3 text-base font-medium rounded-lg transition-all`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <Icon className="mr-4 h-6 w-6" />
+                        <Icon className={`mr-4 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                         {item.name}
                       </Link>
                     );
@@ -140,18 +153,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
                 <div className="flex items-center justify-between w-full">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">
-                      {state.user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {state.user?.email}
-                    </p>
+                  <div className="flex items-center flex-1 min-w-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#0070BA] to-[#005a94] rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-semibold text-sm">
+                        {state.user?.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="ml-3 flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {state.user?.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {state.user?.email}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleLogout}
+                    className="text-gray-700 hover:text-[#0070BA] hover:bg-gray-100"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
@@ -169,7 +190,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="flex items-center"
+            className="flex items-center text-gray-700 hover:text-[#0070BA] hover:bg-gray-100"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign out
