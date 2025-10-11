@@ -22,6 +22,7 @@ class RefTypeEnum(enum.Enum):
     PAYMENT = "payment"
     REFUND = "refund"
     ADJUSTMENT = "adjustment"
+    TRANSFER = "transfer"
 
 
 class LedgerEntry(Base):

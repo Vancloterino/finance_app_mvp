@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { useApp } from '../../context/AppContext';
 import { ArrowRightLeft, AlertCircle } from 'lucide-react';
-import { SpaceWithMembers, BalanceSummary } from '../../types';
-import { usersApi, pledgesApi } from '../../api/services';
+import { SpaceWithMembers } from '../../types';
+import { transfersApi } from '../../api/services';
 
 interface TransferDialogProps {
   isOpen: boolean;
@@ -21,37 +21,9 @@ const TransferDialog: React.FC<TransferDialogProps> = ({ isOpen, onClose, spaces
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [balances, setBalances] = useState<{ [key: string]: BalanceSummary }>({});
-
-  // Load balances for all spaces when dialog opens
-  useEffect(() => {
-    if (isOpen && state.user) {
-      const loadBalances = async () => {
-        const balancePromises = spaces.map(async (space) => {
-          try {
-            const balance = await usersApi.getUserBalance(state.user!.id, space.id);
-            return { spaceId: space.id, balance };
-          } catch (err) {
-            return { spaceId: space.id, balance: null };
-          }
-        });
-
-        const results = await Promise.all(balancePromises);
-        const balanceMap: { [key: string]: BalanceSummary } = {};
-        results.forEach(({ spaceId, balance }) => {
-          if (balance) balanceMap[spaceId] = balance;
-        });
-        setBalances(balanceMap);
-      };
-
-      loadBalances();
-    }
-  }, [isOpen, spaces, state.user]);
 
   const fromSpace = spaces.find((s) => s.id === fromSpaceId);
   const toSpace = spaces.find((s) => s.id === toSpaceId);
-  const fromBalance = fromSpaceId ? balances[fromSpaceId] : null;
-  const toBalance = toSpaceId ? balances[toSpaceId] : null;
 
   const handleTransfer = async () => {
     if (!fromSpace || !toSpace || !amount || !state.user) return;
@@ -62,51 +34,36 @@ const TransferDialog: React.FC<TransferDialogProps> = ({ isOpen, onClose, spaces
       return;
     }
 
-    // Check if user has sufficient balance in from space
-    if (fromBalance && fromBalance.net_balance < amountNum) {
-      setError(`Insufficient balance in ${fromSpace.name}`);
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      // Create a pledge in the destination space (credit)
-      await pledgesApi.createPledge({
-        space_id: toSpaceId,
+      // Use the transfer endpoint to create atomic transfer (debit + credit)
+      await transfersApi.createTransfer({
+        from_space_id: fromSpaceId,
+        to_space_id: toSpaceId,
         amount_minor: Math.round(amountNum * 100),
         currency: toSpace.currency,
-        description: description || `Transfer from ${fromSpace.name}`,
+        memo: description || `Transfer between spaces`,
       });
 
-      // Create a negative pledge in the source space (debit)
-      await pledgesApi.createPledge({
-        space_id: fromSpaceId,
-        amount_minor: Math.round(amountNum * -100),
-        currency: fromSpace.currency,
-        description: description || `Transfer to ${toSpace.name}`,
-      });
+      setLoading(false);
 
       // Reset form
       setFromSpaceId('');
       setToSpaceId('');
       setAmount('');
       setDescription('');
+
+      // Close dialog and reload
       onClose();
+
+      // Reload to show updated transaction history
+      window.location.reload();
     } catch (err: any) {
       setError(err.message || 'Failed to transfer funds');
-    } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (amount: number | undefined, currency: string) => {
-    if (amount === undefined) return '...';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount);
   };
 
   const canTransfer = fromSpaceId && toSpaceId && amount && fromSpaceId !== toSpaceId;
@@ -137,11 +94,6 @@ const TransferDialog: React.FC<TransferDialogProps> = ({ isOpen, onClose, spaces
               </option>
             ))}
           </select>
-          {fromBalance && (
-            <p className="mt-1 text-sm text-gray-500">
-              Available: {formatCurrency(fromBalance.net_balance, fromSpace?.currency || 'USD')}
-            </p>
-          )}
         </div>
 
         <div className="flex justify-center">
@@ -168,11 +120,6 @@ const TransferDialog: React.FC<TransferDialogProps> = ({ isOpen, onClose, spaces
                 </option>
               ))}
           </select>
-          {toBalance && (
-            <p className="mt-1 text-sm text-gray-500">
-              Current balance: {formatCurrency(toBalance.net_balance, toSpace?.currency || 'USD')}
-            </p>
-          )}
         </div>
 
         <div>

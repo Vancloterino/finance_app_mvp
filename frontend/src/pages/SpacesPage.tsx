@@ -28,16 +28,11 @@ const SpacesPage: React.FC = () => {
 
       setLoadingBalance(true);
       try {
-        const balancePromises = state.spaces.map((space) =>
-          usersApi.getUserBalance(state.user!.id, space.id)
-        );
-        const balances = await Promise.all(balancePromises);
-        // net_balance is a number (already in dollars), not in minor units
-        const total = balances.reduce((sum, balance) => {
-          const balanceValue = typeof balance.net_balance === 'number' ? balance.net_balance : 0;
-          return sum + balanceValue;
-        }, 0);
-        setTotalBalance(total);
+        // Get user's total balance across all spaces (returns balance in minor units)
+        const response: any = await usersApi.getUserBalance(state.user.id);
+        // Convert from minor units (cents) to dollars
+        const balanceInDollars = (response.balance || 0) / 100;
+        setTotalBalance(balanceInDollars);
       } catch (err) {
         console.error('Failed to load total balance:', err);
         setTotalBalance(0);

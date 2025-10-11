@@ -213,6 +213,18 @@ export const webhooksApi = {
     api.post(`/webhooks/process-payout/${payoutId}`),
 };
 
+// Transfers API
+export const transfersApi = {
+  createTransfer: (transferData: {
+    from_space_id: string;
+    to_space_id: string;
+    amount_minor: number;
+    currency: string;
+    memo?: string;
+  }): Promise<any> =>
+    api.post('/transfers', transferData),
+};
+
 // Utility API
 export const utilityApi = {
   ping: (): Promise<{ message: string }> =>

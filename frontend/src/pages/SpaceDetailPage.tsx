@@ -13,7 +13,8 @@ import {
   PayoutCreate,
   ConsentCreate,
   ConsentSummary,
-  Consent
+  Consent,
+  LedgerEntry
 } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Button from '../components/ui/Button';
@@ -60,6 +61,10 @@ const SpaceDetailPage: React.FC = () => {
   // Payment-related state
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
+  // Ledger/Transaction history state
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+
   // Last updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -105,6 +110,13 @@ const SpaceDetailPage: React.FC = () => {
     }
   }, [space, activeTab]);
 
+  // Load ledger when space is loaded and overview tab is active
+  useEffect(() => {
+    if (space && activeTab === 'overview') {
+      loadLedger();
+    }
+  }, [space, activeTab]);
+
   // Load payment method status when space is loaded
   useEffect(() => {
     if (space) {
@@ -126,11 +138,26 @@ const SpaceDetailPage: React.FC = () => {
     }
   };
 
+  const loadLedger = async () => {
+    if (!spaceId) return;
+
+    setLedgerLoading(true);
+    try {
+      const ledgerData = await spacesApi.getSpaceLedger(spaceId);
+      setLedgerEntries(ledgerData);
+    } catch (err: any) {
+      console.error('Failed to load ledger:', err);
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
+
   const handleCreatePledge = async (pledgeData: PledgeCreate) => {
     try {
       await pledgesApi.createPledge(pledgeData);
       toast.success('Pledge created successfully!');
       await loadPledges();
+      await loadLedger();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create pledge');
       throw error;
@@ -425,27 +452,33 @@ const SpaceDetailPage: React.FC = () => {
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <p className="text-xs font-medium text-gray-500 mb-1">Your Balance</p>
             {(() => {
-              const userPledges = pledges.filter(p => p.user_id === state.user?.id);
-              const userTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
-              const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
-              const userMember = space.members.find(m => m.user_id === state.user?.id);
-              const allocatedAmount = userMember
-                ? totalPledges * parseFloat(userMember.allocation_pct.toString())
-                : 0;
-              const balance = userTotal - allocatedAmount;
+              // Calculate from ledger: pledges + credits - debits
+              const userEntries = ledgerEntries.filter(e => e.user_id === state.user?.id);
+              const credits = userEntries
+                .filter(e => e.type === 'PLEDGE' || e.type === 'CREDIT')
+                .reduce((sum, e) => sum + e.amount_minor, 0);
+              const debits = userEntries
+                .filter(e => e.type === 'DEBIT')
+                .reduce((sum, e) => sum + e.amount_minor, 0);
+              const balance = credits - debits;
               const isPositive = balance >= 0;
               const BalanceIcon = isPositive ? TrendingUp : TrendingDown;
 
               return (
-                <div className="flex items-center space-x-2">
-                  <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {isPositive ? '+' : ''}
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: space.currency
-                    }).format(balance / 100)}
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                      {isPositive ? '+' : ''}
+                      {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: space.currency
+                      }).format(balance / 100)}
+                    </p>
+                    <BalanceIcon className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-red-600'}`} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Pledges + Transfers In - Transfers Out - Payouts
                   </p>
-                  <BalanceIcon className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-red-600'}`} />
                 </div>
               );
             })()}
@@ -509,28 +542,32 @@ const SpaceDetailPage: React.FC = () => {
           <div className="flex items-center">
             <DollarSign className="h-8 w-8 text-green-600" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Your Contribution</p>
+              <p className="text-sm font-medium text-gray-600">Your Contribution (Pledges)</p>
               <div className="flex items-baseline space-x-3">
                 <p className="text-2xl font-bold text-gray-900">
                   {(() => {
-                    const userPledges = pledges.filter(p => p.user_id === state.user?.id);
-                    const totalPledges = pledges.reduce((sum, p) => sum + p.amount_minor, 0);
-                    const userTotal = userPledges.reduce((sum, p) => sum + p.amount_minor, 0);
-                    const contributionPct = totalPledges > 0 ? (userTotal / totalPledges) * 100 : 0;
-                    return `${contributionPct.toFixed(1)}%`;
+                    // Only count PLEDGE type entries for contribution
+                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type === 'PLEDGE');
+                    const userTotal = userPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
+                    return new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: space.currency
+                    }).format(userTotal / 100);
                   })()}
                 </p>
                 <p className="text-sm text-gray-500">
                   {(() => {
-                    const userMember = space.members.find(m => m.user_id === state.user?.id);
-                    return userMember
-                      ? `(${(parseFloat(userMember.allocation_pct.toString()) * 100).toFixed(1)}% allocated)`
-                      : '';
+                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type === 'PLEDGE');
+                    const totalPledgeEntries = ledgerEntries.filter(e => e.type === 'PLEDGE');
+                    const userTotal = userPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
+                    const totalPledges = totalPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
+                    const contributionPct = totalPledges > 0 ? (userTotal / totalPledges) * 100 : 0;
+                    return `(${contributionPct.toFixed(1)}% of total)`;
                   })()}
                 </p>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                pledged vs allocated share
+                Amount you pledged
               </p>
             </div>
           </div>
@@ -617,30 +654,62 @@ const SpaceDetailPage: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Pledges */}
+          {/* Transaction History */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Recent Pledges</h3>
+              <h3 className="text-lg font-medium text-gray-900">Transaction History</h3>
               <Button size="sm" onClick={() => setIsCreatePledgeModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Pledge
               </Button>
             </div>
-            <div className="space-y-4">
-              <PledgeList
-                pledges={pledges.slice(0, 3)}
-                isLoading={pledgesLoading}
-                onPledgeClick={handlePledgeClick}
-              />
-              {pledges.length > 3 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveTab('pledges')}
-                  className="w-full"
-                >
-                  View all {pledges.length} pledges
-                </Button>
+            <div className="space-y-3">
+              {ledgerLoading ? (
+                <LoadingSpinner size="sm" />
+              ) : ledgerEntries.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No transactions yet</p>
+              ) : (
+                <>
+                  {ledgerEntries.slice(0, 5).map((entry) => {
+                    const isPositive = entry.type === 'PLEDGE' || entry.type === 'CREDIT';
+                    const isTransfer = entry.ref_type === 'TRANSFER';
+                    return (
+                      <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {isTransfer ? (
+                            <ArrowRightLeft className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-orange-600'}`} />
+                          ) : (
+                            <DollarSign className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-red-600'}`} />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {entry.type} {isTransfer && `(${isPositive ? 'In' : 'Out'})`}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {entry.memo || entry.ref_type}
+                            </p>
+                          </div>
+                        </div>
+                        <p className={`text-sm font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPositive ? '+' : '-'}
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: entry.currency
+                          }).format(entry.amount_minor / 100)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {ledgerEntries.length > 5 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                    >
+                      View all {ledgerEntries.length} transactions
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </div>

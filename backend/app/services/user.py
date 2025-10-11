@@ -148,11 +148,13 @@ class UserService:
         # Return list of spaces with user's role and allocation
         return [
             {
-                "space_id": alloc.space_id,
-                "space_name": alloc.space.name if alloc.space else None,
-                "role": alloc.role,
+                "id": alloc.space_id,
+                "name": alloc.space.name if alloc.space else "",
+                "description": alloc.space.description if alloc.space else None,
                 "allocation_pct": float(alloc.allocation_pct),
-                "is_active": alloc.is_active
+                "is_admin": alloc.role == "admin",
+                "created_at": alloc.created_at,
+                "updated_at": alloc.updated_at
             }
             for alloc in allocations
         ]
@@ -161,18 +163,21 @@ class UserService:
     def get_user_total_balance(db: Session, user_id: UUID, currency: str = "USD") -> int:
         """Calculate user's total balance across all spaces"""
         from app.models.ledger import LedgerEntry
-        from sqlalchemy import func, and_
+        from sqlalchemy import func, and_, or_
 
-        # Sum all credits
+        # Sum all credits and pledges (positive contributions)
         credits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
             and_(
                 LedgerEntry.user_id == user_id,
                 LedgerEntry.currency == currency,
-                LedgerEntry.type == "CREDIT"
+                or_(
+                    LedgerEntry.type == "CREDIT",
+                    LedgerEntry.type == "PLEDGE"
+                )
             )
         ).scalar() or 0
 
-        # Sum all debits
+        # Sum all debits (negative contributions)
         debits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
             and_(
                 LedgerEntry.user_id == user_id,

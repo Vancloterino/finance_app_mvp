@@ -193,14 +193,17 @@ class SpaceService:
     def get_space_balance(db: Session, space_id: UUID, currency: str = "USD") -> int:
         """Calculate space balance (sum of all member balances)"""
         from app.models.ledger import LedgerEntry
-        from sqlalchemy import func
+        from sqlalchemy import func, or_
 
-        # Sum all credits for this space
+        # Sum all credits and pledges for this space
         credits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
             and_(
                 LedgerEntry.space_id == space_id,
                 LedgerEntry.currency == currency,
-                LedgerEntry.type == "CREDIT"
+                or_(
+                    LedgerEntry.type == "CREDIT",
+                    LedgerEntry.type == "PLEDGE"
+                )
             )
         ).scalar() or 0
 
