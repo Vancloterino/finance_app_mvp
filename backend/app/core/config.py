@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = "pk_test_dev_key"
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:5173"]
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "testserver"]
 
     # Environment
     ENVIRONMENT: str = "development"

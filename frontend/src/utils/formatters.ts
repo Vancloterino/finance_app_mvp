@@ -1,6 +1,38 @@
+import i18n from '../config/i18n';
+
+/**
+ * Get the current locale from i18n or fallback to browser/default
+ */
+const getCurrentLocale = (): string => {
+  // Try to get locale from i18n (if initialized)
+  try {
+    if (i18n && i18n.language) {
+      // If language already contains a hyphen, it's a full locale (e.g., "en-US")
+      if (i18n.language.includes('-')) {
+        return i18n.language;
+      }
+
+      // Map i18n language codes to Intl locale codes
+      const localeMap: Record<string, string> = {
+        'en': 'en-US',
+        'es': 'es-ES',
+        'fr': 'fr-FR',
+      };
+      return localeMap[i18n.language] || `${i18n.language}-${i18n.language.toUpperCase()}`;
+    }
+  } catch (e) {
+    // Ignore errors, will fallback
+  }
+
+  // Fallback to browser language or default
+  return navigator?.language || 'en-US';
+};
+
 export const formatCurrency = (amountMinor: number, currency: string): string => {
   const amount = amountMinor / 100;
-  return new Intl.NumberFormat('en-US', {
+  const locale = getCurrentLocale();
+
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency.toUpperCase(),
   }).format(amount);
@@ -23,7 +55,8 @@ export const formatDate = (dateString: string): string => {
   } else if (diffDays < -1 && diffDays >= -7) {
     return `${Math.abs(diffDays)} days ago`;
   } else {
-    return date.toLocaleDateString('en-US', {
+    const locale = getCurrentLocale();
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -33,7 +66,9 @@ export const formatDate = (dateString: string): string => {
 
 export const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
+  const locale = getCurrentLocale();
+
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

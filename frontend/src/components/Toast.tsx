@@ -50,23 +50,30 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   const getStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 text-green-800 border-green-200';
+        return 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700';
       case 'error':
-        return 'bg-red-50 text-red-800 border-red-200';
+        return 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700';
       case 'warning':
-        return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700';
       case 'info':
-        return 'bg-blue-50 text-blue-800 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700';
     }
+  };
+
+  const getAriaLive = () => {
+    return toast.type === 'error' ? 'assertive' : 'polite';
   };
 
   return (
     <div
+      role="alert"
+      aria-live={getAriaLive()}
+      aria-atomic="true"
       className={`flex items-center gap-3 p-4 rounded-lg border shadow-lg max-w-md w-full transition-all duration-300 ${getStyles()} ${
         isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'
       }`}
     >
-      <div className="flex-shrink-0">{getIcon()}</div>
+      <div className="flex-shrink-0" aria-hidden="true">{getIcon()}</div>
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={handleClose}

@@ -28,7 +28,7 @@ import CreatePayoutModal from '../components/payouts/CreatePayoutModal';
 import PayoutDetailModal from '../components/payouts/PayoutDetailModal';
 import ConsentModal from '../components/payouts/ConsentModal';
 import PaymentHistory from '../components/payments/PaymentHistory';
-import { ArrowLeft, Users, DollarSign, Settings, Plus, CreditCard, AlertTriangle, TrendingUp, TrendingDown, Minus, Send, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Users, DollarSign, Settings, Plus, CreditCard, AlertTriangle, TrendingUp, TrendingDown, Minus, Send, BarChart3, ArrowRightLeft } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 
 const SpaceDetailPage: React.FC = () => {
@@ -64,6 +64,7 @@ const SpaceDetailPage: React.FC = () => {
   // Ledger/Transaction history state
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Last updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -144,9 +145,11 @@ const SpaceDetailPage: React.FC = () => {
     setLedgerLoading(true);
     try {
       const ledgerData = await spacesApi.getSpaceLedger(spaceId);
-      setLedgerEntries(ledgerData);
+      // API returns {entries: [...]} so extract the entries array
+      setLedgerEntries(Array.isArray(ledgerData) ? ledgerData : (ledgerData?.entries || []));
     } catch (err: any) {
       console.error('Failed to load ledger:', err);
+      setLedgerEntries([]); // Ensure it's always an array
     } finally {
       setLedgerLoading(false);
     }
@@ -452,15 +455,26 @@ const SpaceDetailPage: React.FC = () => {
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <p className="text-xs font-medium text-gray-500 mb-1">Your Balance</p>
             {(() => {
-              // Calculate from ledger: pledges + credits - debits
+              // Calculate from ledger: pledged - debited + credited + adjusted
               const userEntries = ledgerEntries.filter(e => e.user_id === state.user?.id);
-              const credits = userEntries
-                .filter(e => e.type === 'PLEDGE' || e.type === 'CREDIT')
+
+              const pledged = userEntries
+                .filter(e => e.type.toUpperCase() === 'PLEDGE')
                 .reduce((sum, e) => sum + e.amount_minor, 0);
-              const debits = userEntries
-                .filter(e => e.type === 'DEBIT')
+
+              const debited = userEntries
+                .filter(e => e.type.toUpperCase() === 'DEBIT')
                 .reduce((sum, e) => sum + e.amount_minor, 0);
-              const balance = credits - debits;
+
+              const credited = userEntries
+                .filter(e => e.type.toUpperCase() === 'CREDIT')
+                .reduce((sum, e) => sum + e.amount_minor, 0);
+
+              const adjusted = userEntries
+                .filter(e => e.type.toUpperCase() === 'ADJUST')
+                .reduce((sum, e) => sum + e.amount_minor, 0);
+
+              const balance = pledged - debited + credited + adjusted;
               const isPositive = balance >= 0;
               const BalanceIcon = isPositive ? TrendingUp : TrendingDown;
 
@@ -547,7 +561,7 @@ const SpaceDetailPage: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   {(() => {
                     // Only count PLEDGE type entries for contribution
-                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type === 'PLEDGE');
+                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type.toUpperCase() === 'PLEDGE');
                     const userTotal = userPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
                     return new Intl.NumberFormat('en-US', {
                       style: 'currency',
@@ -557,8 +571,8 @@ const SpaceDetailPage: React.FC = () => {
                 </p>
                 <p className="text-sm text-gray-500">
                   {(() => {
-                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type === 'PLEDGE');
-                    const totalPledgeEntries = ledgerEntries.filter(e => e.type === 'PLEDGE');
+                    const userPledgeEntries = ledgerEntries.filter(e => e.user_id === state.user?.id && e.type.toUpperCase() === 'PLEDGE');
+                    const totalPledgeEntries = ledgerEntries.filter(e => e.type.toUpperCase() === 'PLEDGE');
                     const userTotal = userPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
                     const totalPledges = totalPledgeEntries.reduce((sum, e) => sum + e.amount_minor, 0);
                     const contributionPct = totalPledges > 0 ? (userTotal / totalPledges) * 100 : 0;
@@ -670,9 +684,21 @@ const SpaceDetailPage: React.FC = () => {
                 <p className="text-gray-500 text-center py-4">No transactions yet</p>
               ) : (
                 <>
-                  {ledgerEntries.slice(0, 5).map((entry) => {
-                    const isPositive = entry.type === 'PLEDGE' || entry.type === 'CREDIT';
-                    const isTransfer = entry.ref_type === 'TRANSFER';
+                  {(showAllTransactions ? ledgerEntries : ledgerEntries.slice(0, 5)).map((entry) => {
+                    // Normalize type to uppercase for comparison (API returns lowercase)
+                    const entryType = entry.type.toUpperCase();
+
+                    // PLEDGE and CREDIT are positive (green), DEBIT is negative (red), ADJUST can be either
+                    const isPositive = entryType === 'PLEDGE' || entryType === 'CREDIT' || (entryType === 'ADJUST' && entry.amount_minor >= 0);
+                    const isTransfer = entry.ref_type?.toUpperCase() === 'TRANSFER';
+
+                    // Determine display type
+                    let displayType = entry.type.toLowerCase();
+                    if (entryType === 'PLEDGE') displayType = 'pledge';
+                    if (entryType === 'DEBIT') displayType = 'debit';
+                    if (entryType === 'CREDIT') displayType = 'credit';
+                    if (entryType === 'ADJUST') displayType = 'adjustment';
+
                     return (
                       <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-3">
@@ -682,8 +708,8 @@ const SpaceDetailPage: React.FC = () => {
                             <DollarSign className={`h-5 w-5 ${isPositive ? 'text-green-600' : 'text-red-600'}`} />
                           )}
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {entry.type} {isTransfer && `(${isPositive ? 'In' : 'Out'})`}
+                            <p className="text-sm font-medium text-gray-900 capitalize">
+                              {displayType} {isTransfer && `(${isPositive ? 'In' : 'Out'})`}
                             </p>
                             <p className="text-xs text-gray-500">
                               {entry.memo || entry.ref_type}
@@ -695,7 +721,7 @@ const SpaceDetailPage: React.FC = () => {
                           {new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: entry.currency
-                          }).format(entry.amount_minor / 100)}
+                          }).format(Math.abs(entry.amount_minor) / 100)}
                         </p>
                       </div>
                     );
@@ -705,8 +731,9 @@ const SpaceDetailPage: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       className="w-full"
+                      onClick={() => setShowAllTransactions(!showAllTransactions)}
                     >
-                      View all {ledgerEntries.length} transactions
+                      {showAllTransactions ? 'Show less' : `View all ${ledgerEntries.length} transactions`}
                     </Button>
                   )}
                 </>

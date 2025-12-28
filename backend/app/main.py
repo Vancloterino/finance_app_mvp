@@ -4,13 +4,33 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.cache_headers import CacheHeadersMiddleware
 
 # Validate production configuration on startup
 settings.validate_production_config()
+
+# Initialize Sentry for error tracking (production only)
+if settings.SENTRY_DSN and settings.ENVIRONMENT == "production":
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        integrations=[
+            FastApiIntegration(),
+            SqlalchemyIntegration(),
+        ],
+        traces_sample_rate=0.1,  # 10% of transactions for performance monitoring
+        release="financeapp@0.1.0",  # Track releases
+        send_default_pii=False,  # Don't send PII by default
+        attach_stacktrace=True,
+        before_send=lambda event, hint: event if settings.ENVIRONMENT == "production" else None,
+    )
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -25,6 +45,9 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Cache headers middleware (add before security headers)
+app.add_middleware(CacheHeadersMiddleware)
 
 # Security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)

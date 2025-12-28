@@ -73,7 +73,14 @@ def create_dev_token(
     user_id: str,
     db: Session = Depends(get_db)
 ):
-    """Create development token for testing (should be removed in production)"""
+    """Create development token for testing (DEVELOPMENT ONLY)"""
+    # Only allow in development environment
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Endpoint not available"
+        )
+
     try:
         from uuid import UUID
         user = UserService.get_user(db, UUID(user_id))
@@ -126,6 +133,17 @@ def register(
             detail="Failed to create user"
         )
 
+    # Send verification email
+    from app.core.security import create_email_verification_token
+    from app.services.notification import NotificationService
+
+    verification_token = create_email_verification_token(str(user.id))
+    NotificationService.send_verification_email(
+        email=user.email,
+        name=user.name,
+        verification_token=verification_token
+    )
+
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -147,18 +165,36 @@ def login_email(
     db: Session = Depends(get_db)
 ):
     """Login with email and password"""
+    print(f"[DEBUG] Login attempt for email: {login_request.email}")
     user = UserService.authenticate_user(db, login_request.email, login_request.password)
     if not user:
+        print(f"[DEBUG] Authentication failed for: {login_request.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
 
+    print(f"[DEBUG] User found: email={user.email}, is_active={user.is_active}, email_verified={user.email_verified}")
+
     if not user.is_active:
+        print(f"[DEBUG] User is not active: {user.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is deactivated"
         )
+
+    # Check if email is verified (skip in development)
+    from app.core.config import settings
+    if settings.ENVIRONMENT == "production" and not user.email_verified:
+        print(f"[DEBUG] Email not verified for: {user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before logging in. Check your inbox for the verification link."
+        )
+    elif not user.email_verified:
+        print(f"[DEBUG] Email not verified but allowing in {settings.ENVIRONMENT} environment")
+
+    print(f"[DEBUG] All checks passed, creating token for: {user.email}")
 
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -213,3 +249,254 @@ def refresh_token(
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("10/minute")
+def logout(
+    request: Request,
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """
+    Logout user by blacklisting current token.
+    Token will be invalid until it naturally expires.
+    """
+    from app.core.cache import CacheService
+    from jose import jwt
+
+    # Extract token from Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header"
+        )
+
+    token = auth_header.replace("Bearer ", "")
+
+    # Decode token to get expiration time
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        exp = payload.get("exp")
+        if exp:
+            import time
+            ttl = int(exp - time.time())
+            if ttl > 0:
+                # Add token to blacklist with TTL matching token expiration
+                cache_key = f"blacklist:token:{token}"
+                CacheService.set(cache_key, "1", ttl=ttl)
+    except Exception as e:
+        # Token is already invalid or expired
+        pass
+
+    return None
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
+def logout_all(
+    request: Request,
+    current_user_id: UUID = Depends(get_current_user_id)
+):
+    """
+    Logout user from all devices by invalidating all tokens.
+    Uses user-level blacklist that persists for token lifetime.
+    """
+    from app.core.cache import CacheService
+
+    # Add user to blacklist for token expiration duration
+    cache_key = f"blacklist:user:{str(current_user_id)}"
+    ttl = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
+    CacheService.set(cache_key, "1", ttl=ttl)
+
+    return None
+
+
+@router.post("/password-reset/request", status_code=status.HTTP_200_OK)
+@limiter.limit("5/hour")
+def request_password_reset(
+    request: Request,
+    reset_request: "PasswordResetRequest",
+    db: Session = Depends(get_db)
+):
+    """
+    Request password reset. Sends email with reset token.
+    Always returns success to prevent email enumeration.
+    """
+    from app.schemas.password_reset import PasswordResetRequest, PasswordResetResponse
+    from app.core.security import create_password_reset_token
+    from app.services.notification import NotificationService
+
+    # Look up user by email
+    user = UserService.get_user_by_email(db, reset_request.email)
+
+    if user:
+        # Generate reset token
+        reset_token = create_password_reset_token(str(user.id))
+
+        # Send reset email
+        NotificationService.send_password_reset_email(
+            email=user.email,
+            name=user.name,
+            reset_token=reset_token
+        )
+
+    # Always return success (security best practice to prevent email enumeration)
+    return PasswordResetResponse(
+        message="If that email address is in our system, we have sent a password reset link to it."
+    )
+
+
+@router.post("/password-reset/confirm", status_code=status.HTTP_200_OK)
+@limiter.limit("10/hour")
+def confirm_password_reset(
+    request: Request,
+    reset_confirm: "PasswordResetConfirm",
+    db: Session = Depends(get_db)
+):
+    """
+    Confirm password reset with token and new password.
+    """
+    from app.schemas.password_reset import PasswordResetConfirm, PasswordResetResponse
+    from app.core.security import verify_password_reset_token, get_password_hash
+
+    # Verify reset token
+    user_id = verify_password_reset_token(reset_confirm.token)
+
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Get user
+    from uuid import UUID
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID in token"
+        )
+
+    user = UserService.get_user_by_id(db, user_uuid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Update password
+    user.hashed_password = get_password_hash(reset_confirm.new_password)
+    db.commit()
+
+    return PasswordResetResponse(
+        message="Your password has been reset successfully. You can now log in with your new password."
+    )
+
+
+
+
+@router.post("/verify-email", status_code=status.HTTP_200_OK)
+@limiter.limit("10/hour")
+def verify_email(
+    request: Request,
+    verification_data: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify email address with token.
+    """
+    from app.core.security import verify_email_verification_token
+    from uuid import UUID
+
+    token = verification_data.get("token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification token is required"
+        )
+
+    # Verify token
+    user_id = verify_email_verification_token(token)
+
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+
+    # Get user
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID in token"
+        )
+
+    user = UserService.get_user_by_id(db, user_uuid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Check if already verified
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already verified"
+        )
+
+    # Mark user as verified
+    user.is_verified = True
+    db.commit()
+
+    return {"message": "Email verified successfully. You can now log in."}
+
+
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+@limiter.limit("5/hour")
+def resend_verification(
+    request: Request,
+    email_data: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Resend verification email.
+    """
+    from app.core.security import create_email_verification_token
+    from app.services.notification import NotificationService
+
+    email = email_data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is required"
+        )
+
+    # Look up user
+    user = UserService.get_user_by_email(db, email)
+
+    if user:
+        # Check if already verified
+        if user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already verified"
+            )
+
+        # Generate verification token
+        verification_token = create_email_verification_token(str(user.id))
+
+        # Send verification email
+        NotificationService.send_verification_email(
+            email=user.email,
+            name=user.name,
+            verification_token=verification_token
+        )
+
+    # Always return success (prevent email enumeration)
+    return {"message": "If that email address is in our system, we have sent a verification link to it."}
+

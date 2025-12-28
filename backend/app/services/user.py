@@ -161,24 +161,24 @@ class UserService:
 
     @staticmethod
     def get_user_total_balance(db: Session, user_id: UUID, currency: str = "USD") -> int:
-        """Calculate user's total balance across all spaces"""
+        """
+        Calculate user's total balance across all spaces
+        Formula: net_balance = pledged - debited + credited + adjusted
+        """
         from app.models.ledger import LedgerEntry
-        from sqlalchemy import func, and_, or_
+        from sqlalchemy import func, and_
 
-        # Sum all credits and pledges (positive contributions)
-        credits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+        # Sum pledges (money committed)
+        pledged = db.query(func.sum(LedgerEntry.amount_minor)).filter(
             and_(
                 LedgerEntry.user_id == user_id,
                 LedgerEntry.currency == currency,
-                or_(
-                    LedgerEntry.type == "CREDIT",
-                    LedgerEntry.type == "PLEDGE"
-                )
+                LedgerEntry.type == "PLEDGE"
             )
         ).scalar() or 0
 
-        # Sum all debits (negative contributions)
-        debits = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+        # Sum debits (money paid out)
+        debited = db.query(func.sum(LedgerEntry.amount_minor)).filter(
             and_(
                 LedgerEntry.user_id == user_id,
                 LedgerEntry.currency == currency,
@@ -186,7 +186,26 @@ class UserService:
             )
         ).scalar() or 0
 
-        return int(credits - debits)
+        # Sum credits (money received)
+        credited = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "CREDIT"
+            )
+        ).scalar() or 0
+
+        # Sum adjustments (can be positive or negative)
+        adjusted = db.query(func.sum(LedgerEntry.amount_minor)).filter(
+            and_(
+                LedgerEntry.user_id == user_id,
+                LedgerEntry.currency == currency,
+                LedgerEntry.type == "ADJUST"
+            )
+        ).scalar() or 0
+
+        # Calculate balance: pledged - debited + credited + adjusted
+        return int(pledged - debited + credited + adjusted)
 
     @staticmethod
     def get_user_ledger(db: Session, user_id: UUID, currency: str = "USD", skip: int = 0, limit: int = 100):

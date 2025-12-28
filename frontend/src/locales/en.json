@@ -1,0 +1,110 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "welcome": "Welcome, {{name}}!",
+    "error": "An error occurred",
+    "success": "Success!",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Sign Up",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "invalidEmail": "Invalid email address",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordsDontMatch": "Passwords don't match",
+    "loginSuccess": "Successfully logged in",
+    "logoutSuccess": "Successfully logged out",
+    "registerSuccess": "Account created successfully"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "create": "Create Space",
+    "edit": "Edit Space",
+    "delete": "Delete Space",
+    "name": "Space Name",
+    "description": "Description",
+    "members": "Members",
+    "inviteMember": "Invite Member",
+    "noSpaces": "No spaces yet",
+    "createFirst": "Create your first space"
+  },
+  "pledges": {
+    "title": "Pledges",
+    "create": "Create Pledge",
+    "amount": "Amount",
+    "frequency": "Frequency",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "payments": {
+    "title": "Payments",
+    "addMethod": "Add Payment Method",
+    "method": "Payment Method",
+    "cardNumber": "Card Number",
+    "expiry": "Expiry",
+    "cvv": "CVV",
+    "makePayment": "Make Payment",
+    "paymentSuccess": "Payment successful",
+    "paymentFailed": "Payment failed"
+  },
+  "payouts": {
+    "title": "Payouts",
+    "create": "Create Payout",
+    "execute": "Execute Payout",
+    "status": "Status",
+    "pending": "Pending",
+    "approved": "Approved",
+    "completed": "Completed"
+  },
+  "profile": {
+    "title": "Profile",
+    "edit": "Edit Profile",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "updateSuccess": "Profile updated successfully"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "security": "Security"
+  },
+  "errors": {
+    "generic": "Something went wrong",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized",
+    "notFound": "Not found",
+    "serverError": "Server error. Please try again later."
+  }
+}

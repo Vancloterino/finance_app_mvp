@@ -13,6 +13,7 @@ from app.services.space import SpaceService
 from app.services.stripe_service import StripeService
 from app.services.user import UserService
 from app.services.notification import NotificationService
+from app.core.encryption import EncryptionService
 
 
 class PayoutService:
@@ -26,8 +27,13 @@ class PayoutService:
         # Set consent deadline if not provided (48 hours from now)
         consent_deadline = datetime.utcnow() + timedelta(hours=48)
 
+        # Encrypt sensitive fields before storing
+        payout_data = payout.dict()
+        if payout_data.get('payee_account'):
+            payout_data['payee_account'] = EncryptionService.encrypt(payout_data['payee_account'])
+
         db_payout = Payout(
-            **payout.dict(),
+            **payout_data,
             status=PayoutStatusEnum.PROPOSED,
             consent_deadline=consent_deadline
         )
@@ -61,12 +67,20 @@ class PayoutService:
     @staticmethod
     def get_payout(db: Session, payout_id: UUID) -> Optional[Payout]:
         """Get a payout by ID"""
-        return db.query(Payout).filter(Payout.id == payout_id).first()
+        payout = db.query(Payout).filter(Payout.id == payout_id).first()
+        if payout and payout.payee_account:
+            # Decrypt sensitive field before returning
+            try:
+                payout.payee_account = EncryptionService.decrypt(payout.payee_account)
+            except ValueError:
+                # If decryption fails, it might be unencrypted legacy data
+                pass
+        return payout
 
     @staticmethod
     def get_space_payouts(db: Session, space_id: UUID, skip: int = 0, limit: int = 100) -> List[Payout]:
         """Get all payouts for a space"""
-        return (
+        payouts = (
             db.query(Payout)
             .filter(Payout.space_id == space_id)
             .order_by(Payout.created_at.desc())
@@ -74,6 +88,14 @@ class PayoutService:
             .limit(limit)
             .all()
         )
+        # Decrypt sensitive fields
+        for payout in payouts:
+            if payout.payee_account:
+                try:
+                    payout.payee_account = EncryptionService.decrypt(payout.payee_account)
+                except ValueError:
+                    pass
+        return payouts
 
     @staticmethod
     def submit_consent(db: Session, payout_id: UUID, user_id: UUID, consent_data: ConsentCreate) -> Optional[Consent]:

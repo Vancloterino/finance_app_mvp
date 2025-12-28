@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import Button from '../components/ui/Button';
-import Header from '../components/layout/Header';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +12,8 @@ const RegisterPage: React.FC = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    acceptedTerms: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -47,6 +47,10 @@ const RegisterPage: React.FC = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    if (!formData.acceptedTerms) {
+      newErrors.acceptedTerms = 'You must accept the Terms of Service and Privacy Policy';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -74,7 +78,6 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
       <div className="grid md:grid-cols-2 min-h-screen">
         {/* Left Side - Image/Branding */}
         <div className="hidden md:flex bg-[#0070BA] text-white flex-col justify-center items-center p-12 relative overflow-hidden">
@@ -224,16 +227,29 @@ const RegisterPage: React.FC = () => {
                 </Button>
               </div>
 
-              <p className="text-xs text-gray-500 text-center">
-                By creating an account, you agree to our{' '}
-                <a href="#" className="text-[#0070BA] hover:underline">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-[#0070BA] hover:underline">
-                  Privacy Policy
-                </a>
-              </p>
+              <div className="mb-6">
+                <label className="flex items-start">
+                  <input
+                    type="checkbox"
+                    checked={formData.acceptedTerms}
+                    onChange={(e) => setFormData({ ...formData, acceptedTerms: e.target.checked })}
+                    className="mt-1 h-4 w-4 text-[#0070BA] focus:ring-[#0070BA] border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">
+                    I agree to the{' '}
+                    <Link to="/terms" className="text-[#0070BA] hover:underline" target="_blank">
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/privacy" className="text-[#0070BA] hover:underline" target="_blank">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
+                {errors.acceptedTerms && (
+                  <p className="text-red-600 text-sm mt-1">{errors.acceptedTerms}</p>
+                )}
+              </div>
             </form>
 
             <div className="mt-6">

@@ -26,6 +26,7 @@ class User(Base):
     # Metadata
     phone = Column(String(50), nullable=True)
     profile_image_url = Column(Text, nullable=True)
+    timezone = Column(String(100), nullable=True)  # IANA timezone (e.g., "America/New_York")
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

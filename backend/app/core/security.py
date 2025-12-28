@@ -49,6 +49,72 @@ def generate_api_key() -> str:
     return secrets.token_urlsafe(32)
 
 
+def create_password_reset_token(user_id: str) -> str:
+    """Create a password reset token with 1-hour expiration"""
+    expires_delta = timedelta(hours=1)
+    expire = datetime.utcnow() + expires_delta
+
+    to_encode = {
+        "sub": user_id,
+        "exp": expire,
+        "type": "password_reset"
+    }
+
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def verify_password_reset_token(token: str) -> Optional[str]:
+    """Verify a password reset token and return user_id if valid"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        # Check token type
+        if payload.get("type") != "password_reset":
+            return None
+
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+
+        return user_id
+    except JWTError:
+        return None
+
+
+def create_email_verification_token(user_id: str) -> str:
+    """Create an email verification token with 24-hour expiration"""
+    expires_delta = timedelta(hours=24)
+    expire = datetime.utcnow() + expires_delta
+
+    to_encode = {
+        "sub": user_id,
+        "exp": expire,
+        "type": "email_verification"
+    }
+
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def verify_email_verification_token(token: str) -> Optional[str]:
+    """Verify an email verification token and return user_id if valid"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        # Check token type
+        if payload.get("type") != "email_verification":
+            return None
+
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+
+        return user_id
+    except JWTError:
+        return None
+
+
 # Authentication dependency
 security = HTTPBearer()
 

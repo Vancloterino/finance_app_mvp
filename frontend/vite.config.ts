@@ -13,6 +13,17 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    // Exclude optional dependencies that may not be installed
+    exclude: ['@sentry/react', '@sentry/tracing'],
+  },
+  resolve: {
+    alias: {
+      // Prevent Vite from trying to resolve optional Sentry imports
+      '@sentry/react': '@sentry/react',
+      '@sentry/tracing': '@sentry/tracing',
+    },
+  },
   build: {
     // Enable code splitting and optimization
     rollupOptions: {

@@ -1,10 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+import ErrorBoundary from './components/ErrorBoundary.tsx'
+import { OnboardingProvider } from './contexts/OnboardingContext'
 import './index.css'
+import { initSentry } from './config/sentry'
+
+// Initialize Sentry error tracking (production only)
+initSentry();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <OnboardingProvider>
+        <App />
+      </OnboardingProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )

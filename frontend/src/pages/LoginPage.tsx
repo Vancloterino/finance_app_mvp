@@ -3,7 +3,6 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import Button from '../components/ui/Button';
-import Header from '../components/layout/Header';
 
 const LoginPage: React.FC = () => {
   const { state, login } = useApp();
@@ -49,7 +48,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
       <div className="grid md:grid-cols-2 min-h-screen">
         {/* Left Side - Image/Branding */}
         <div className="hidden md:flex bg-[#0070BA] text-white flex-col justify-center items-center p-12 relative overflow-hidden">
@@ -159,9 +157,9 @@ const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-[#0070BA] hover:text-[#005a94] transition-colors">
+                  <Link to="/forgot-password" className="font-medium text-[#0070BA] hover:text-[#005a94] transition-colors">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 

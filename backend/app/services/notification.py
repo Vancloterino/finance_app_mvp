@@ -358,3 +358,213 @@ class NotificationService:
             subject=subject,
             html_content=html_content
         )
+    @staticmethod
+    def send_support_email(
+        name: str,
+        email: str,
+        subject: str,
+        message: str,
+        phone: str = None,
+        company: str = None,
+        ticket_id: str = None
+    ) -> bool:
+        """
+        Send a support/contact form submission email to the support team.
+        """
+        from app.services.email import EmailService
+        
+        email_subject = f"[Support #{ticket_id}] {subject}"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #0070BA; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h2 style="margin: 0;">New Support Request</h2>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">Ticket #{ticket_id}</p>
+                </div>
+
+                <div style="background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd;">
+                    <h3 style="color: #0070BA;">Contact Information</h3>
+                    <p><strong>Name:</strong> {name}</p>
+                    <p><strong>Email:</strong> {email}</p>
+                    {f'<p><strong>Phone:</strong> {phone}</p>' if phone else ''}
+                    {f'<p><strong>Company:</strong> {company}</p>' if company else ''}
+
+                    <h3 style="color: #0070BA;">Subject</h3>
+                    <p>{subject}</p>
+
+                    <h3 style="color: #0070BA;">Message</h3>
+                    <div style="background-color: white; padding: 15px; border-radius: 4px;">
+                        {message}
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        try:
+            return EmailService.send_email(
+                to="support@financeapp.com",
+                subject=email_subject,
+                html_body=html_body
+            )
+        except Exception as e:
+            print(f"Failed to send support email: {str(e)}")
+            return False
+
+
+    @staticmethod
+    def send_password_reset_email(
+        email: str,
+        name: str,
+        reset_token: str
+    ) -> bool:
+        """
+        Send password reset email with reset link.
+        """
+        from app.services.email import EmailService
+        from app.core.config import settings
+        
+        # Construct reset URL (frontend will handle the token)
+        frontend_url = settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else "http://localhost:3000"
+        reset_url = f"{frontend_url}/reset-password?token={reset_token}"
+
+        email_subject = "Reset Your Password - FinanceApp"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #0070BA; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h2 style="margin: 0;">Password Reset Request</h2>
+                </div>
+
+                <div style="background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd;">
+                    <p>Hi {name},</p>
+                    
+                    <p>We received a request to reset your password for your FinanceApp account.</p>
+                    
+                    <p>Click the button below to reset your password:</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_url}" 
+                           style="background-color: #0070BA; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </div>
+                    
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="background-color: #e9e9e9; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px;">
+                        {reset_url}
+                    </p>
+                    
+                    <p><strong>This link will expire in 1 hour.</strong></p>
+                    
+                    <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    
+                    <p style="font-size: 12px; color: #666;">
+                        For security, this request was received from your account. If you did not make this request, 
+                        please contact us immediately at support@financeapp.com.
+                    </p>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+                    <p>FinanceApp - Simplifying shared financial responsibilities</p>
+                    <p>© 2025 FinanceApp Inc. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        try:
+            return EmailService.send_email(
+                to=email,
+                subject=email_subject,
+                html_body=html_body
+            )
+        except Exception as e:
+            print(f"Failed to send password reset email: {str(e)}")
+            return False
+
+
+
+    @staticmethod
+    def send_verification_email(
+        email: str,
+        name: str,
+        verification_token: str
+    ) -> bool:
+        """
+        Send email verification email with verification link.
+        """
+        from app.services.email import EmailService
+        from app.core.config import settings
+        
+        # Construct verification URL (frontend will handle the token)
+        frontend_url = settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else "http://localhost:3000"
+        verification_url = f"{frontend_url}/verify-email?token={verification_token}"
+
+        email_subject = "Verify Your Email - FinanceApp"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #0070BA; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h2 style="margin: 0;">Welcome to FinanceApp!</h2>
+                </div>
+
+                <div style="background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd;">
+                    <p>Hi {name},</p>
+                    
+                    <p>Thanks for signing up for FinanceApp! We're excited to have you on board.</p>
+                    
+                    <p>To get started, please verify your email address by clicking the button below:</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{verification_url}" 
+                           style="background-color: #0070BA; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+                            Verify Email Address
+                        </a>
+                    </div>
+                    
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="background-color: #e9e9e9; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px;">
+                        {verification_url}
+                    </p>
+                    
+                    <p><strong>This link will expire in 24 hours.</strong></p>
+                    
+                    <p>If you didn't create an account with FinanceApp, please ignore this email.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    
+                    <p style="font-size: 12px; color: #666;">
+                        Once verified, you'll be able to create spaces, manage shared expenses, and collaborate with your group.
+                    </p>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+                    <p>FinanceApp - Simplifying shared financial responsibilities</p>
+                    <p>© 2025 FinanceApp Inc. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        try:
+            return EmailService.send_email(
+                to=email,
+                subject=email_subject,
+                html_body=html_body
+            )
+        except Exception as e:
+            print(f"Failed to send verification email: {str(e)}")
+            return False
+

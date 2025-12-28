@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class UserBase(BaseModel):
@@ -19,6 +19,17 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     profile_image_url: Optional[str] = None
+    timezone: Optional[str] = None
+
+    @field_validator('timezone')
+    @classmethod
+    def validate_timezone_field(cls, v):
+        """Validate timezone is a valid IANA timezone string"""
+        if v is not None:
+            from app.core.validators import validate_timezone
+            if not validate_timezone(v):
+                raise ValueError(f"Invalid timezone: {v}. Must be a valid IANA timezone (e.g., 'America/New_York', 'UTC')")
+        return v
 
 
 class PasswordChange(BaseModel):
@@ -34,6 +45,7 @@ class User(UserBase):
     is_active: bool = True
     email_verified: bool = False
     profile_image_url: Optional[str] = None
+    timezone: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

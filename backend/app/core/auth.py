@@ -17,20 +17,40 @@ async def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     """Get current user from JWT token"""
+    from app.core.cache import CacheService
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    token = credentials.credentials
+
     try:
-        payload = verify_token(credentials.credentials)
+        payload = verify_token(token)
         if payload is None:
             raise credentials_exception
 
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
+
+        # Check if token is blacklisted
+        token_blacklist_key = f"blacklist:token:{token}"
+        if CacheService.get(token_blacklist_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked"
+            )
+
+        # Check if user is blacklisted (logout from all devices)
+        user_blacklist_key = f"blacklist:user:{user_id}"
+        if CacheService.get(user_blacklist_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been terminated. Please login again."
+            )
 
         user = UserService.get_user(db, UUID(user_id))
         if user is None:

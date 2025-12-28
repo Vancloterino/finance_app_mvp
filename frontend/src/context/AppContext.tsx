@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import { User, Space, SpaceWithMembers, ApiError } from '../types';
 import { authApi, spacesApi } from '../api/services';
+import { setSentryUser, clearSentryUser } from '../config/sentry';
 
 // State interface
 interface AppState {
@@ -166,9 +167,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('auth_token');
-    dispatch({ type: 'LOGOUT' });
+  const logout = useCallback(async () => {
+    try {
+      // Call backend logout endpoint to blacklist token
+      await authApi.logout();
+    } catch (error) {
+      // Even if API call fails, proceed with local logout
+      console.error('Logout API error:', error);
+    } finally {
+      // Clear Sentry user context
+      clearSentryUser();
+
+      // Always clear local state
+      localStorage.removeItem('auth_token');
+      dispatch({ type: 'LOGOUT' });
+    }
   }, []);
 
   const loadCurrentUser = useCallback(async () => {
@@ -182,6 +195,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       const user = await authApi.getCurrentUser();
       dispatch({ type: 'SET_USER', payload: user });
+
+      // Set Sentry user context for error tracking
+      if (user) {
+        setSentryUser({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        });
+      }
     } catch (error) {
       const apiError = error as ApiError;
       if (apiError.status === 401) {

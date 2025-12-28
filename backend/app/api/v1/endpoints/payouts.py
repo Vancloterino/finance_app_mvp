@@ -219,12 +219,18 @@ def get_consent_summary(
 @limiter.limit("5/minute")  # Rate limit: 5 payout executions per minute (strict limit for financial operations)
 def execute_payout(
     payout_id: UUID,
+    password: str,  # Require password for sensitive operation
     request: Request,
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
-    """Execute a payout (admin only)"""
+    """Execute a payout (admin only, requires password verification)"""
+    from app.core.reauthentication import require_password_verification
+
     user_id = current_user_id
+
+    # Verify password before allowing execution
+    require_password_verification(db, current_user_id, password)
 
     # Verify payout exists
     payout = PayoutService.get_payout(db, payout_id)

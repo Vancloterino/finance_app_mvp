@@ -39,6 +39,12 @@ else
 fi
 echo ""
 
+# Test 1.5: Verify Email (auto-verify for testing)
+echo -e "${YELLOW}Test 1.5: Verify Email${NC}"
+docker exec finance_app_postgres psql -U finance_user -d finance_app -c "UPDATE users SET email_verified = true WHERE email = '$TEST_EMAIL';" > /dev/null 2>&1
+echo -e "${GREEN}✅ Email verified (auto)${NC}"
+echo ""
+
 # Test 2: Login
 echo -e "${YELLOW}Test 2: User Login${NC}"
 LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/login-email" \

@@ -118,10 +118,16 @@ def set_default_payment_method(
 @router.delete("/payment-methods/{payment_method_id}")
 def remove_payment_method(
     payment_method_id: str,
+    password: str,  # Require password for sensitive operation
     db: Session = Depends(get_db),
     current_user_id: UUID = Depends(get_current_user_id)
 ):
-    """Remove a payment method"""
+    """Remove a payment method (requires password verification)"""
+    from app.core.reauthentication import require_password_verification
+
+    # Verify password before allowing deletion
+    require_password_verification(db, current_user_id, password)
+
     user_id = current_user_id
 
     try:

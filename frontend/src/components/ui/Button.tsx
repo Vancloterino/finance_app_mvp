@@ -23,9 +23,9 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary: 'bg-[#0070BA] text-white hover:bg-[#005a94] focus:ring-[#0070BA]',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
+    secondary: 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-gray-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
+    ghost: 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500'
   };
 
   const sizeClasses = {
@@ -50,6 +50,7 @@ const Button: React.FC<ButtonProps> = ({
     <button
       className={classes}
       disabled={disabled || loading}
+      aria-busy={loading}
       {...props}
     >
       {loading && (

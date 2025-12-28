@@ -133,19 +133,19 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-blue-700">
-                  <span className="font-medium">{consentSummary.consent_counts.approved}</span> Approved
+                  <span className="font-medium">{consentSummary.consents?.filter(c => c.decision === 'APPROVE').length || 0}</span> Approved
                 </p>
                 <p className="text-blue-700">
-                  <span className="font-medium">{consentSummary.consent_counts.denied}</span> Denied
+                  <span className="font-medium">{consentSummary.consents?.filter(c => c.decision === 'DENY').length || 0}</span> Denied
                 </p>
               </div>
               <div>
                 <p className="text-blue-700">
-                  <span className="font-medium">{consentSummary.consent_counts.pending}</span> Pending
+                  <span className="font-medium">{consentSummary.consents?.filter(c => c.decision === 'PENDING').length || 0}</span> Pending
                 </p>
                 <p className="text-blue-700">
                   Progress: <span className="font-medium">
-                    {((consentSummary.consent_allocations.approved / consentSummary.total_allocation) * 100).toFixed(1)}%
+                    {((consentSummary.approved_allocation / consentSummary.total_allocation) * 100).toFixed(1)}%
                   </span>
                 </p>
               </div>
@@ -154,7 +154,7 @@ const ConsentModal: React.FC<ConsentModalProps> = ({
               <div
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${Math.min(100, (consentSummary.consent_allocations.approved / consentSummary.total_allocation) * 100)}%`
+                  width: `${Math.min(100, (consentSummary.approved_allocation / consentSummary.total_allocation) * 100)}%`
                 }}
               />
             </div>

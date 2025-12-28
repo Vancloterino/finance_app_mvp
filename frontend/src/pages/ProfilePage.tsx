@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../contexts/ToastContext';
+import { useOnboarding } from '../contexts/OnboardingContext';
 import { authApi } from '../api/services';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { User, Mail, Lock, Save } from 'lucide-react';
+import TimezoneSelector from '../components/ui/TimezoneSelector';
+import { User, Mail, Lock, Save, Globe, HelpCircle } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const { state, dispatch } = useApp();
   const { showToast } = useToast();
+  const { startTour } = useOnboarding();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: state.user?.name || '',
     email: state.user?.email || '',
+    timezone: state.user?.timezone || null,
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -26,7 +30,10 @@ const ProfilePage: React.FC = () => {
     setLoading(true);
 
     try {
-      const updatedUser = await authApi.updateCurrentUser({ name: formData.name });
+      const updatedUser = await authApi.updateCurrentUser({
+        name: formData.name,
+        timezone: formData.timezone
+      });
 
       // Update user in global state
       dispatch({ type: 'SET_USER', payload: updatedUser });
@@ -117,6 +124,12 @@ const ProfilePage: React.FC = () => {
               required
             />
 
+            <TimezoneSelector
+              label="Timezone"
+              value={formData.timezone}
+              onChange={(tz) => setFormData({ ...formData, timezone: tz })}
+            />
+
             <div className="flex gap-3 pt-2">
               <Button type="submit" loading={loading}>
                 <Save className="h-4 w-4 mr-2" />
@@ -130,6 +143,7 @@ const ProfilePage: React.FC = () => {
                   setFormData({
                     name: state.user?.name || '',
                     email: state.user?.email || '',
+                    timezone: state.user?.timezone || null,
                   });
                 }}
                 disabled={loading}
@@ -147,6 +161,13 @@ const ProfilePage: React.FC = () => {
             <div>
               <label className="text-sm font-medium text-gray-600">Email Address</label>
               <p className="text-gray-900">{state.user?.email}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600 flex items-center">
+                <Globe className="h-4 w-4 mr-1" />
+                Timezone
+              </label>
+              <p className="text-gray-900">{state.user?.timezone || 'Not set'}</p>
             </div>
           </div>
         )}
@@ -204,7 +225,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Account Information */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Mail className="h-5 w-5 mr-2" />
           Account Information
@@ -227,6 +248,28 @@ const ProfilePage: React.FC = () => {
                 : 'N/A'}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Help & Onboarding */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <HelpCircle className="h-5 w-5 mr-2" />
+          Help & Getting Started
+        </h2>
+
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            New to FinanceApp? Take a quick tour to learn how to manage shared finances.
+          </p>
+          <Button
+            variant="secondary"
+            onClick={startTour}
+            className="flex items-center gap-2"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Start Onboarding Tour
+          </Button>
         </div>
       </div>
     </div>

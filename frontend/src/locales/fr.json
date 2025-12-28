@@ -1,0 +1,110 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "welcome": "Bienvenue, {{name}}!",
+    "error": "Une erreur s'est produite",
+    "success": "Succès!",
+    "warning": "Avertissement",
+    "info": "Information"
+  },
+  "auth": {
+    "login": "Se Connecter",
+    "register": "S'inscrire",
+    "logout": "Se Déconnecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié?",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "emailRequired": "L'e-mail est obligatoire",
+    "passwordRequired": "Le mot de passe est obligatoire",
+    "invalidEmail": "Adresse e-mail invalide",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+    "loginSuccess": "Connexion réussie",
+    "logoutSuccess": "Déconnexion réussie",
+    "registerSuccess": "Compte créé avec succès"
+  },
+  "spaces": {
+    "title": "Espaces",
+    "create": "Créer un Espace",
+    "edit": "Modifier l'Espace",
+    "delete": "Supprimer l'Espace",
+    "name": "Nom de l'Espace",
+    "description": "Description",
+    "members": "Membres",
+    "inviteMember": "Inviter un Membre",
+    "noSpaces": "Aucun espace pour le moment",
+    "createFirst": "Créez votre premier espace"
+  },
+  "pledges": {
+    "title": "Engagements",
+    "create": "Créer un Engagement",
+    "amount": "Montant",
+    "frequency": "Fréquence",
+    "status": "Statut",
+    "active": "Actif",
+    "inactive": "Inactif"
+  },
+  "payments": {
+    "title": "Paiements",
+    "addMethod": "Ajouter un Moyen de Paiement",
+    "method": "Moyen de Paiement",
+    "cardNumber": "Numéro de Carte",
+    "expiry": "Expiration",
+    "cvv": "CVV",
+    "makePayment": "Effectuer un Paiement",
+    "paymentSuccess": "Paiement réussi",
+    "paymentFailed": "Paiement échoué"
+  },
+  "payouts": {
+    "title": "Retraits",
+    "create": "Créer un Retrait",
+    "execute": "Exécuter le Retrait",
+    "status": "Statut",
+    "pending": "En attente",
+    "approved": "Approuvé",
+    "completed": "Terminé"
+  },
+  "profile": {
+    "title": "Profil",
+    "edit": "Modifier le Profil",
+    "name": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "changePassword": "Changer le Mot de Passe",
+    "currentPassword": "Mot de Passe Actuel",
+    "newPassword": "Nouveau Mot de Passe",
+    "updateSuccess": "Profil mis à jour avec succès"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "notifications": "Notifications",
+    "privacy": "Confidentialité",
+    "security": "Sécurité"
+  },
+  "errors": {
+    "generic": "Quelque chose s'est mal passé",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "unauthorized": "Vous n'êtes pas autorisé",
+    "notFound": "Non trouvé",
+    "serverError": "Erreur du serveur. Veuillez réessayer plus tard."
+  }
+}

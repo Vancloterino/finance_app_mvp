@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axiosRetry from 'axios-retry';
 import { ApiError } from '../types';
+import { performanceMonitor } from '../services/performance';
 
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
@@ -10,13 +12,41 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add auth token when available
+// Retry configuration
+export const retryConfig = {
+  retries: 3, // Retry up to 3 times
+  retryDelay: axiosRetry.exponentialDelay, // Exponential backoff: 100ms, 200ms, 400ms
+  retryCondition: (error: any) => {
+    // Retry on network errors or 5xx server errors
+    return (
+      axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+      (error.response?.status !== undefined && error.response.status >= 500)
+    );
+  },
+  shouldResetTimeout: true, // Reset timeout on each retry
+  onRetry: (retryCount: number, error: any, requestConfig: any) => {
+    console.log(`Retrying request (${retryCount}/3):`, requestConfig.url);
+  },
+};
+
+// Configure axios-retry for automatic retries on network/server errors
+axiosRetry(apiClient, retryConfig);
+
+// Request interceptor to add auth token and start performance tracking
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Start performance tracking
+    const requestId = performanceMonitor.startApiRequest(
+      config.method?.toUpperCase() || 'GET',
+      config.url || ''
+    );
+    (config as any).__performanceId = requestId;
+
     return config;
   },
   (error) => {
@@ -24,12 +54,24 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for centralized error handling
+// Response interceptor for centralized error handling and performance tracking
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    // End performance tracking on success
+    const requestId = (response.config as any).__performanceId;
+    if (requestId) {
+      performanceMonitor.endApiRequest(requestId, response.status);
+    }
+
     return response;
   },
   (error: AxiosError) => {
+    // End performance tracking on error
+    const requestId = error.config ? (error.config as any).__performanceId : undefined;
+    if (requestId) {
+      performanceMonitor.endApiRequest(requestId, error.response?.status || 0);
+    }
+
     const apiError: ApiError = {
       message: 'An unexpected error occurred',
       status: error.response?.status || 500,

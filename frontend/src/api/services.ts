@@ -46,6 +46,12 @@ export const authApi = {
 
   refreshToken: (): Promise<{ access_token: string; token_type: string }> =>
     api.post('/auth/refresh'),
+
+  logout: (): Promise<void> =>
+    api.post('/auth/logout'),
+
+  logoutAll: (): Promise<void> =>
+    api.post('/auth/logout-all'),
 };
 
 // Users API

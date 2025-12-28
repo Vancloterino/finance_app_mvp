@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /profile/
+Allow: /
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://yourdomain.com/sitemap.xml
